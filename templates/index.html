@@ -22,7 +22,7 @@
     <div class="section active" id="sec-applications">
       <div class="header-row">
         <div class="summary" id="app-summary"></div>
-        <button class="btn" onclick="openAddModal()">+ Add</button>
+        <button class="btn" onclick="openAppModal()">+ Add</button>
       </div>
       <table>
         <thead><tr><th>Company</th><th>Role</th><th>Date</th><th>Status</th><th></th></tr></thead>
@@ -30,15 +30,64 @@
       </table>
     </div>
 
+    <!-- Interviews -->
     <div class="section" id="sec-interviews"><p style="color:var(--text-dim)">Coming soon</p></div>
-    <div class="section" id="sec-tasks"><p style="color:var(--text-dim)">Coming soon</p></div>
-    <div class="section" id="sec-projects"><p style="color:var(--text-dim)">Coming soon</p></div>
-    <div class="section" id="sec-meetings"><p style="color:var(--text-dim)">Coming soon</p></div>
-    <div class="section" id="sec-contacts"><p style="color:var(--text-dim)">Coming soon</p></div>
+
+    <!-- Tasks (Kanban) -->
+    <div class="section" id="sec-tasks">
+      <div class="header-row">
+        <div class="summary" id="task-summary"></div>
+        <button class="btn" onclick="openTaskModal()">+ Add Task</button>
+      </div>
+      <div class="kanban">
+        <div class="kanban-col" data-status="todo" ondragover="event.preventDefault()" ondrop="dropTask(event,'todo')">
+          <h4>Todo</h4>
+          <div class="kanban-cards" id="kanban-todo"></div>
+        </div>
+        <div class="kanban-col" data-status="started" ondragover="event.preventDefault()" ondrop="dropTask(event,'started')">
+          <h4>Started</h4>
+          <div class="kanban-cards" id="kanban-started"></div>
+        </div>
+        <div class="kanban-col" data-status="done" ondragover="event.preventDefault()" ondrop="dropTask(event,'done')">
+          <h4>Done</h4>
+          <div class="kanban-cards" id="kanban-done"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Projects -->
+    <div class="section" id="sec-projects">
+      <div class="header-row">
+        <div class="summary" id="proj-summary"></div>
+        <button class="btn" onclick="openProjectModal()">+ Add Project</button>
+      </div>
+      <div id="proj-list"></div>
+    </div>
+
+    <!-- Meetings -->
+    <div class="section" id="sec-meetings">
+      <div class="header-row">
+        <div class="summary" id="meet-summary"></div>
+        <button class="btn" onclick="openMeetingModal()">+ Log Meeting</button>
+      </div>
+      <div id="meet-list"></div>
+    </div>
+
+    <!-- Contacts -->
+    <div class="section" id="sec-contacts">
+      <div class="header-row">
+        <div class="summary" id="contact-summary"></div>
+        <button class="btn" onclick="openContactModal()">+ Add Contact</button>
+      </div>
+      <table>
+        <thead><tr><th>Name</th><th>Relationship</th><th>Company</th><th>Last Contact</th><th>Notes</th><th></th></tr></thead>
+        <tbody id="contact-tbody"></tbody>
+      </table>
+    </div>
   </main>
 
-  <!-- Add Modal -->
-  <div class="modal-overlay" id="add-modal">
+  <!-- Application Modal -->
+  <div class="modal-overlay" id="app-modal">
     <div class="modal">
       <h3>Add Application</h3>
       <label>Company</label><input id="m-company">
@@ -53,13 +102,98 @@
       </select>
       <label>Notes</label><textarea id="m-notes"></textarea>
       <div class="actions">
-        <button class="btn btn-cancel" onclick="closeAddModal()">Cancel</button>
+        <button class="btn btn-cancel" onclick="closeModal('app-modal')">Cancel</button>
         <button class="btn" onclick="submitApplication()">Save</button>
       </div>
     </div>
   </div>
 
-  <!-- Status change menu (reused) -->
+  <!-- Task Modal -->
+  <div class="modal-overlay" id="task-modal">
+    <div class="modal">
+      <h3>Add Task</h3>
+      <label>Title</label><input id="tm-title">
+      <label>Priority</label>
+      <select id="tm-priority">
+        <option value="low">Low</option>
+        <option value="medium" selected>Medium</option>
+        <option value="high">High</option>
+      </select>
+      <label>Due Date</label><input id="tm-due" type="date">
+      <label>Notes</label><textarea id="tm-notes"></textarea>
+      <div class="actions">
+        <button class="btn btn-cancel" onclick="closeModal('task-modal')">Cancel</button>
+        <button class="btn" onclick="submitTask()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Project Modal -->
+  <div class="modal-overlay" id="project-modal">
+    <div class="modal">
+      <h3>Add Project</h3>
+      <label>Name</label><input id="pm-name">
+      <label>Type</label>
+      <select id="pm-type">
+        <option value="coding">Coding</option>
+        <option value="idea">Idea</option>
+        <option value="open">Open</option>
+      </select>
+      <label>Status</label>
+      <select id="pm-status">
+        <option value="active">Active</option>
+        <option value="paused">Paused</option>
+        <option value="done">Done</option>
+      </select>
+      <label>Description</label><textarea id="pm-desc"></textarea>
+      <label>Repo URL</label><input id="pm-repo">
+      <div class="actions">
+        <button class="btn btn-cancel" onclick="closeModal('project-modal')">Cancel</button>
+        <button class="btn" onclick="submitProject()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Meeting Modal -->
+  <div class="modal-overlay" id="meeting-modal">
+    <div class="modal">
+      <h3>Log Meeting</h3>
+      <label>Person Name</label><input id="mm-name" list="contact-names">
+      <datalist id="contact-names"></datalist>
+      <label>Date</label><input id="mm-date" type="date">
+      <label>Topics</label><textarea id="mm-topics"></textarea>
+      <label>Outcome</label><input id="mm-outcome">
+      <label>Next Steps</label><textarea id="mm-next"></textarea>
+      <div class="actions">
+        <button class="btn btn-cancel" onclick="closeModal('meeting-modal')">Cancel</button>
+        <button class="btn" onclick="submitMeeting()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contact Modal -->
+  <div class="modal-overlay" id="contact-modal">
+    <div class="modal">
+      <h3>Add Contact</h3>
+      <label>Name</label><input id="cm-name">
+      <label>Relationship</label>
+      <select id="cm-rel">
+        <option value="colleague">Colleague</option>
+        <option value="friend">Friend</option>
+        <option value="recruiter">Recruiter</option>
+        <option value="other">Other</option>
+      </select>
+      <label>Company</label><input id="cm-company">
+      <label>Last Contact Date</label><input id="cm-lcd" type="date">
+      <label>Notes</label><textarea id="cm-notes"></textarea>
+      <div class="actions">
+        <button class="btn btn-cancel" onclick="closeModal('contact-modal')">Cancel</button>
+        <button class="btn" onclick="submitContact()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status change menu -->
   <div class="status-menu" id="status-menu">
     <div data-val="applied" class="badge applied">Applied</div>
     <div data-val="interview" class="badge interview">Interview</div>
@@ -68,17 +202,38 @@
   </div>
 
   <script>
+    // --- Utilities ---
+    function esc(s) { const d = document.createElement('div'); d.textContent = s||''; return d.innerHTML; }
+    function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+    function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+    function daysAgo(dateStr) {
+      if (!dateStr) return null;
+      const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
+      if (diff < 0) return 'today';
+      if (diff === 0) return 'today';
+      if (diff === 1) return '1 day ago';
+      if (diff < 7) return diff + ' days ago';
+      if (diff < 30) return Math.floor(diff/7) + ' week' + (Math.floor(diff/7)>1?'s':'') + ' ago';
+      if (diff < 365) return Math.floor(diff/30) + ' month' + (Math.floor(diff/30)>1?'s':'') + ' ago';
+      return Math.floor(diff/365) + ' year' + (Math.floor(diff/365)>1?'s':'') + ' ago';
+    }
+
     // Tabs
     document.querySelectorAll('nav .tab').forEach(t => {
       t.onclick = () => {
         document.querySelectorAll('nav .tab').forEach(x => x.classList.remove('active'));
         document.querySelectorAll('.section').forEach(x => x.classList.remove('active'));
         t.classList.add('active');
-        document.getElementById('sec-' + t.dataset.section).classList.add('active');
+        const sec = document.getElementById('sec-' + t.dataset.section);
+        sec.classList.add('active');
+        if (t.dataset.section === 'tasks') loadTasks();
+        if (t.dataset.section === 'projects') loadProjects();
+        if (t.dataset.section === 'meetings') loadMeetings();
+        if (t.dataset.section === 'contacts') loadContacts();
       };
     });
 
-    // Applications
+    // ============ APPLICATIONS ============
     let apps = [];
     let currentStatusId = null;
 
@@ -93,75 +248,186 @@
       apps.forEach(a => counts[a.status]++);
       document.getElementById('app-summary').innerHTML =
         `<span>${counts.applied}</span> applied · <span>${counts.interview}</span> interviews · <span>${counts.offer}</span> offers`;
-
       document.getElementById('app-tbody').innerHTML = apps.map(a => `
         <tr>
-          <td>${esc(a.company)}</td>
-          <td>${esc(a.role)}</td>
-          <td>${a.date_applied}</td>
-          <td><span class="badge ${a.status}" onclick="openStatusMenu(event, ${a.id})">${capitalize(a.status)}</span></td>
+          <td>${esc(a.company)}</td><td>${esc(a.role)}</td><td>${a.date_applied}</td>
+          <td><span class="badge ${a.status}" onclick="openStatusMenu(event, ${a.id})">${cap(a.status)}</span></td>
           <td><button class="btn btn-sm btn-danger" onclick="deleteApp(${a.id})">×</button></td>
-        </tr>
-      `).join('');
+        </tr>`).join('');
     }
 
-    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
-    function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
-
-    // Add modal
-    function openAddModal() {
-      document.getElementById('add-modal').classList.add('show');
-      document.getElementById('m-date').value = new Date().toISOString().slice(0,10);
-    }
-    function closeAddModal() { document.getElementById('add-modal').classList.remove('show'); }
-
+    function openAppModal() { document.getElementById('app-modal').classList.add('show'); document.getElementById('m-date').value = new Date().toISOString().slice(0,10); }
     async function submitApplication() {
-      const body = {
-        company: document.getElementById('m-company').value,
-        role: document.getElementById('m-role').value,
-        date_applied: document.getElementById('m-date').value,
-        status: document.getElementById('m-status').value,
-        notes: document.getElementById('m-notes').value,
-      };
-      await fetch('/api/applications', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
-      closeAddModal();
-      loadApps();
+      await fetch('/api/applications', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+        company: document.getElementById('m-company').value, role: document.getElementById('m-role').value,
+        date_applied: document.getElementById('m-date').value, status: document.getElementById('m-status').value,
+        notes: document.getElementById('m-notes').value
+      })});
+      closeModal('app-modal'); loadApps();
     }
-
-    // Status inline update
     function openStatusMenu(e, id) {
-      e.stopPropagation();
-      currentStatusId = id;
-      const menu = document.getElementById('status-menu');
-      const rect = e.target.getBoundingClientRect();
-      menu.style.top = rect.bottom + 'px';
-      menu.style.left = rect.left + 'px';
-      menu.classList.add('show');
+      e.stopPropagation(); currentStatusId = id;
+      const m = document.getElementById('status-menu'), r = e.target.getBoundingClientRect();
+      m.style.top = r.bottom+'px'; m.style.left = r.left+'px'; m.classList.add('show');
     }
-
-    document.addEventListener('click', () => {
-      document.getElementById('status-menu').classList.remove('show');
-    });
-
+    document.addEventListener('click', () => document.getElementById('status-menu').classList.remove('show'));
     document.querySelectorAll('#status-menu div').forEach(opt => {
-      opt.onclick = async (e) => {
+      opt.onclick = async e => {
         e.stopPropagation();
-        await fetch(`/api/applications/${currentStatusId}`, {
-          method: 'PUT',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({status: opt.dataset.val})
-        });
-        document.getElementById('status-menu').classList.remove('show');
-        loadApps();
+        await fetch(`/api/applications/${currentStatusId}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({status: opt.dataset.val})});
+        document.getElementById('status-menu').classList.remove('show'); loadApps();
       };
     });
+    async function deleteApp(id) { if (!confirm('Delete?')) return; await fetch(`/api/applications/${id}`,{method:'DELETE'}); loadApps(); }
 
-    async function deleteApp(id) {
-      if (!confirm('Delete this application?')) return;
-      await fetch(`/api/applications/${id}`, {method:'DELETE'});
-      loadApps();
+    // ============ TASKS (Kanban) ============
+    let tasks = [];
+    async function loadTasks() {
+      const r = await fetch('/api/tasks'); tasks = await r.json(); renderTasks();
     }
+    function renderTasks() {
+      const counts = {todo:0, started:0, done:0};
+      tasks.forEach(t => counts[t.status]++);
+      document.getElementById('task-summary').innerHTML =
+        `<span>${counts.todo}</span> todo · <span>${counts.started}</span> started · <span>${counts.done}</span> done`;
+      ['todo','started','done'].forEach(s => {
+        document.getElementById('kanban-'+s).innerHTML = tasks.filter(t=>t.status===s).map(t => {
+          const pCls = t.priority==='high'?'priority-high':t.priority==='medium'?'priority-medium':'priority-low';
+          return `<div class="kanban-card" draggable="true" ondragstart="dragTask(event,${t.id})" data-id="${t.id}">
+            <div class="card-title">${esc(t.title)}</div>
+            <div class="card-meta"><span class="priority-badge ${pCls}">${cap(t.priority)}</span>${t.due_date?' · '+t.due_date:''}</div>
+            <button class="btn btn-sm btn-danger card-del" onclick="deleteTask(${t.id})">×</button>
+          </div>`;
+        }).join('');
+      });
+    }
+    function dragTask(e, id) { e.dataTransfer.setData('text/plain', id); }
+    async function dropTask(e, status) {
+      e.preventDefault();
+      const id = e.dataTransfer.getData('text/plain');
+      if (!id) return;
+      await fetch(`/api/tasks/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({status})});
+      loadTasks();
+    }
+    function openTaskModal() { document.getElementById('task-modal').classList.add('show'); }
+    async function submitTask() {
+      await fetch('/api/tasks', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+        title: document.getElementById('tm-title').value, priority: document.getElementById('tm-priority').value,
+        due_date: document.getElementById('tm-due').value, notes: document.getElementById('tm-notes').value
+      })});
+      closeModal('task-modal'); loadTasks();
+    }
+    async function deleteTask(id) { if (!confirm('Delete?')) return; await fetch(`/api/tasks/${id}`,{method:'DELETE'}); loadTasks(); }
 
+    // ============ PROJECTS ============
+    let projects = [];
+    async function loadProjects() {
+      const r = await fetch('/api/projects'); projects = await r.json(); renderProjects();
+    }
+    function renderProjects() {
+      const counts = {active:0, paused:0, done:0};
+      projects.forEach(p => counts[p.status]++);
+      document.getElementById('proj-summary').innerHTML =
+        `<span>${counts.active}</span> active · <span>${counts.paused}</span> paused · <span>${counts.done}</span> done`;
+      document.getElementById('proj-list').innerHTML = projects.map(p => `
+        <div class="proj-card">
+          <div class="proj-header">
+            <span class="proj-name">${esc(p.name)}</span>
+            <span class="badge badge-type-${p.type}">${cap(p.type)}</span>
+            <span class="badge badge-status-${p.status}">${cap(p.status)}</span>
+          </div>
+          <div class="proj-desc">${esc(p.description).substring(0,120)}${p.description&&p.description.length>120?'…':''}</div>
+          ${p.repo_url ? `<a class="proj-link" href="${esc(p.repo_url)}" target="_blank">Repo ↗</a>` : ''}
+          <button class="btn btn-sm btn-danger card-del" onclick="deleteProject(${p.id})">×</button>
+        </div>`).join('');
+    }
+    function openProjectModal() { document.getElementById('project-modal').classList.add('show'); }
+    async function submitProject() {
+      await fetch('/api/projects', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+        name: document.getElementById('pm-name').value, type: document.getElementById('pm-type').value,
+        status: document.getElementById('pm-status').value, description: document.getElementById('pm-desc').value,
+        repo_url: document.getElementById('pm-repo').value
+      })});
+      closeModal('project-modal'); loadProjects();
+    }
+    async function deleteProject(id) { if (!confirm('Delete?')) return; await fetch(`/api/projects/${id}`,{method:'DELETE'}); loadProjects(); }
+
+    // ============ MEETINGS ============
+    let meetings = [];
+    async function loadMeetings() {
+      const r = await fetch('/api/meetings'); meetings = await r.json(); renderMeetings();
+    }
+    function renderMeetings() {
+      document.getElementById('meet-summary').innerHTML = `<span>${meetings.length}</span> meetings logged`;
+      document.getElementById('meet-list').innerHTML = meetings.map(m => `
+        <div class="meet-card" onclick="this.classList.toggle('expanded')">
+          <div class="meet-header">
+            <span class="meet-person">${esc(m.person_name)}</span>
+            <span class="meet-date">${m.date}</span>
+          </div>
+          <div class="meet-topics">${esc((m.topics||'').substring(0,100))}</div>
+          <div class="meet-outcome">${esc(m.outcome)}</div>
+          <div class="meet-detail">
+            <strong>Topics:</strong> ${esc(m.topics)}<br>
+            <strong>Next Steps:</strong> ${esc(m.next_steps)}
+          </div>
+          <button class="btn btn-sm btn-danger card-del" onclick="event.stopPropagation();deleteMeeting(${m.id})">×</button>
+        </div>`).join('');
+    }
+    function openMeetingModal() {
+      document.getElementById('meeting-modal').classList.add('show');
+      document.getElementById('mm-date').value = new Date().toISOString().slice(0,10);
+      // Populate contact names datalist
+      loadContactNames();
+    }
+    async function loadContactNames() {
+      const r = await fetch('/api/contacts'); const contacts = await r.json();
+      document.getElementById('contact-names').innerHTML = contacts.map(c => `<option value="${esc(c.name)}">`).join('');
+    }
+    async function submitMeeting() {
+      await fetch('/api/meetings', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+        person_name: document.getElementById('mm-name').value, date: document.getElementById('mm-date').value,
+        topics: document.getElementById('mm-topics').value, outcome: document.getElementById('mm-outcome').value,
+        next_steps: document.getElementById('mm-next').value
+      })});
+      closeModal('meeting-modal'); loadMeetings();
+    }
+    async function deleteMeeting(id) { if (!confirm('Delete?')) return; await fetch(`/api/meetings/${id}`,{method:'DELETE'}); loadMeetings(); }
+
+    // ============ CONTACTS ============
+    let contacts = [];
+    async function loadContacts() {
+      const r = await fetch('/api/contacts'); contacts = await r.json(); renderContacts();
+    }
+    function renderContacts() {
+      document.getElementById('contact-summary').innerHTML = `<span>${contacts.length}</span> contacts`;
+      document.getElementById('contact-tbody').innerHTML = contacts.map(c => {
+        const lcd = daysAgo(c.last_contact_date);
+        const colorCls = !c.last_contact_date ? 'lcd-never' :
+          c.last_contact_date && (Math.floor((Date.now()-new Date(c.last_contact_date).getTime())/86400000)) < 7 ? 'lcd-green' :
+          (Math.floor((Date.now()-new Date(c.last_contact_date).getTime())/86400000)) < 30 ? 'lcd-yellow' : 'lcd-red';
+        return `<tr>
+          <td>${esc(c.name)}</td>
+          <td><span class="badge badge-rel-${c.relationship}">${cap(c.relationship)}</span></td>
+          <td>${esc(c.company)}</td>
+          <td><span class="${colorCls}">${lcd||'—'}</span></td>
+          <td class="td-snippet">${esc((c.notes||'').substring(0,40))}</td>
+          <td><button class="btn btn-sm btn-danger" onclick="deleteContact(${c.id})">×</button></td>
+        </tr>`;
+      }).join('');
+    }
+    function openContactModal() { document.getElementById('contact-modal').classList.add('show'); }
+    async function submitContact() {
+      await fetch('/api/contacts', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+        name: document.getElementById('cm-name').value, relationship: document.getElementById('cm-rel').value,
+        company: document.getElementById('cm-company').value, last_contact_date: document.getElementById('cm-lcd').value,
+        notes: document.getElementById('cm-notes').value
+      })});
+      closeModal('contact-modal'); loadContacts();
+    }
+    async function deleteContact(id) { if (!confirm('Delete?')) return; await fetch(`/api/contacts/${id}`,{method:'DELETE'}); loadContacts(); }
+
+    // Initial load
     loadApps();
   </script>
 </body>

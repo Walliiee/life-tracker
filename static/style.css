@@ -63,3 +63,51 @@ td { font-size: 0.9rem; }
 .status-menu.show { display: block; }
 .status-menu div { padding: 0.4rem 0.8rem; cursor: pointer; font-size: 0.8rem; }
 .status-menu div:hover { background: var(--border); }
+
+/* Kanban */
+.kanban { display: flex; gap: 1rem; margin-top: 1rem; }
+.kanban-col { flex: 1; background: var(--surface); border-radius: 8px; padding: 0.8rem; min-height: 200px; }
+.kanban-col h4 { color: var(--text-dim); font-size: 0.8rem; text-transform: uppercase; margin-bottom: 0.6rem; }
+.kanban-card { background: var(--surface2); border-radius: 6px; padding: 0.7rem; margin-bottom: 0.5rem; cursor: grab; position: relative; transition: box-shadow 0.15s; }
+.kanban-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+.kanban-card .card-title { font-weight: 600; font-size: 0.9rem; }
+.kanban-card .card-meta { font-size: 0.75rem; color: var(--text-dim); margin-top: 0.3rem; }
+.card-del { position: absolute; top: 0.4rem; right: 0.4rem; }
+.priority-badge { display: inline-block; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+.priority-low { background: rgba(139,143,163,0.2); color: var(--text-dim); }
+.priority-medium { background: rgba(245,166,35,0.2); color: var(--orange); }
+.priority-high { background: rgba(231,76,94,0.2); color: var(--red); }
+
+/* Projects */
+.proj-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-top: 0.8rem; position: relative; }
+.proj-header { display: flex; align-items: center; gap: 0.6rem; }
+.proj-name { font-weight: 700; font-size: 1rem; }
+.proj-desc { color: var(--text-dim); font-size: 0.85rem; margin-top: 0.4rem; }
+.proj-link { color: var(--accent); font-size: 0.8rem; margin-top: 0.3rem; display: inline-block; }
+.badge-type-coding { background: rgba(91,127,255,0.2); color: var(--blue); }
+.badge-type-idea { background: rgba(245,166,35,0.2); color: var(--orange); }
+.badge-type-open { background: rgba(139,143,163,0.2); color: var(--text-dim); }
+.badge-status-active { background: rgba(78,203,113,0.2); color: var(--green); }
+.badge-status-paused { background: rgba(245,166,35,0.2); color: var(--orange); }
+.badge-status-done { background: rgba(139,143,163,0.2); color: var(--text-dim); }
+
+/* Meetings */
+.meet-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-top: 0.8rem; cursor: pointer; position: relative; }
+.meet-header { display: flex; justify-content: space-between; align-items: center; }
+.meet-person { font-weight: 700; }
+.meet-date { color: var(--text-dim); font-size: 0.85rem; }
+.meet-topics { color: var(--text-dim); font-size: 0.85rem; margin-top: 0.3rem; }
+.meet-outcome { font-size: 0.85rem; margin-top: 0.2rem; }
+.meet-detail { display: none; margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px solid var(--border); font-size: 0.85rem; color: var(--text-dim); }
+.meet-card.expanded .meet-detail { display: block; }
+
+/* Contacts */
+.lcd-green { color: var(--green); }
+.lcd-yellow { color: var(--orange); }
+.lcd-red { color: var(--red); }
+.lcd-never { color: var(--text-dim); }
+.badge-rel-colleague { background: rgba(91,127,255,0.2); color: var(--blue); }
+.badge-rel-friend { background: rgba(78,203,113,0.2); color: var(--green); }
+.badge-rel-recruiter { background: rgba(245,166,35,0.2); color: var(--orange); }
+.badge-rel-other { background: rgba(139,143,163,0.2); color: var(--text-dim); }
+.td-snippet { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
