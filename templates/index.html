@@ -9,15 +9,29 @@
 <body>
   <nav>
     <div class="brand">🐺🦅 Life Tracker</div>
-    <div class="tab active" data-section="applications">Applications</div>
+    <div class="tab active" data-section="dashboard">Dashboard</div>
+    <div class="tab" data-section="applications">Applications</div>
     <div class="tab" data-section="interviews">Interviews</div>
     <div class="tab" data-section="tasks">Tasks</div>
     <div class="tab" data-section="projects">Projects</div>
     <div class="tab" data-section="meetings">Meetings</div>
     <div class="tab" data-section="contacts">Contacts</div>
+    <div class="tab" data-section="reports">Reports</div>
   </nav>
 
   <main>
+    <!-- Dashboard -->
+    <div class="section active" id="sec-dashboard">
+      <h2 style="margin-bottom:0.5rem">Activity Heatmap — <span id="heatmap-year"></span></h2>
+      <div id="heatmap-container" class="heatmap-container"></div>
+      <div id="heatmap-tooltip" class="heatmap-tooltip"></div>
+      <div class="quick-stats" id="quick-stats"></div>
+      <div class="daily-note-section">
+        <h3>Today's Note</h3>
+        <textarea id="daily-note" placeholder="What's on your mind today..." onblur="saveDailyNote()"></textarea>
+      </div>
+    </div>
+
     <!-- Applications -->
     <div class="section active" id="sec-applications">
       <div class="header-row">
@@ -71,6 +85,25 @@
         <button class="btn" onclick="openMeetingModal()">+ Log Meeting</button>
       </div>
       <div id="meet-list"></div>
+    </div>
+
+    <!-- Reports -->
+    <div class="section" id="sec-reports">
+      <h2 style="margin-bottom:0.5rem">Generate Report</h2>
+      <div class="report-form">
+        <div class="report-fields">
+          <label>Start Date</label><input id="rpt-start" type="date">
+          <label>End Date</label><input id="rpt-end" type="date">
+        </div>
+        <div class="report-modules">
+          <label><input type="checkbox" id="rpt-app" checked> Applications</label>
+          <label><input type="checkbox" id="rpt-tasks" checked> Tasks</label>
+          <label><input type="checkbox" id="rpt-meet" checked> Meetings</label>
+          <label><input type="checkbox" id="rpt-proj" checked> Projects</label>
+        </div>
+        <button class="btn" id="rpt-btn" onclick="generateReport()">Generate Report</button>
+      </div>
+      <div id="rpt-result" class="rpt-result" style="display:none"></div>
     </div>
 
     <!-- Contacts -->
@@ -226,6 +259,8 @@
         t.classList.add('active');
         const sec = document.getElementById('sec-' + t.dataset.section);
         sec.classList.add('active');
+        if (t.dataset.section === 'dashboard') loadDashboard();
+        if (t.dataset.section === 'applications') loadApps();
         if (t.dataset.section === 'tasks') loadTasks();
         if (t.dataset.section === 'projects') loadProjects();
         if (t.dataset.section === 'meetings') loadMeetings();
@@ -427,8 +462,145 @@
     }
     async function deleteContact(id) { if (!confirm('Delete?')) return; await fetch(`/api/contacts/${id}`,{method:'DELETE'}); loadContacts(); }
 
+    // ============ DASHBOARD ============
+    const HEATMAP_COLORS = ['#161b22','#0e4429','#006d32','#26a641','#39d353'];
+    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+    async function loadDashboard() {
+      const year = new Date().getFullYear();
+      document.getElementById('heatmap-year').textContent = year;
+      const r = await fetch(`/api/heatmap?year=${year}`);
+      const data = await r.json();
+      renderHeatmap(data, year);
+      await loadQuickStats();
+      await loadTodayNote();
+    }
+
+    function renderHeatmap(data, year) {
+      const container = document.getElementById('heatmap-container');
+      // Build grid: 53 weeks × 7 days
+      const startDate = new Date(year, 0, 1);
+      const startDay = startDate.getDay(); // 0=Sun
+      const firstSunday = new Date(year, 0, 1 - startDay);
+      let html = '<div class="heatmap-grid">';
+      // Month labels
+      html += '<div class="heatmap-months">';
+      let lastMonth = -1;
+      for (let w = 0; w < 53; w++) {
+        const d = new Date(firstSunday.getTime() + w * 7 * 86400000);
+        if (d.getMonth() !== lastMonth) {
+          html += `<span class="heatmap-month" style="grid-column:${w+1}">${MONTHS[d.getMonth()]}</span>`;
+          lastMonth = d.getMonth();
+        }
+      }
+      html += '</div>';
+      // Day labels + cells
+      html += '<div class="heatmap-days">';
+      for (let di = 0; di < 7; di++) {
+        html += `<span class="heatmap-day-label">${di%2===1?DAYS[di]:''}</span>`;
+      }
+      html += '</div>';
+      html += '<div class="heatmap-cells">';
+      for (let w = 0; w < 53; w++) {
+        for (let di = 0; di < 7; di++) {
+          const cellDate = new Date(firstSunday.getTime() + (w * 7 + di) * 86400000);
+          const ds = cellDate.toISOString().slice(0, 10);
+          if (cellDate.getFullYear() !== year) { html += '<span class="heatmap-cell empty"></span>'; continue; }
+          const count = data[ds] || 0;
+          const level = count === 0 ? 0 : count <= 2 ? 1 : count <= 5 ? 2 : count <= 8 ? 3 : 4;
+          const monthName = MONTHS[cellDate.getMonth()];
+          const dayNum = cellDate.getDate();
+          html += `<span class="heatmap-cell level-${level}" data-date="${ds}" data-count="${count}" title="${monthName} ${dayNum} — ${count} activities"></span>`;
+        }
+      }
+      html += '</div></div>';
+      container.innerHTML = html;
+      // Tooltip on hover
+      container.addEventListener('mouseover', e => {
+        const c = e.target.closest('.heatmap-cell');
+        if (!c) return;
+        const tt = document.getElementById('heatmap-tooltip');
+        tt.textContent = c.getAttribute('title');
+        tt.style.display = 'block';
+        tt.style.left = (c.offsetLeft + 16) + 'px';
+        tt.style.top = (c.offsetTop - 28) + 'px';
+      });
+      container.addEventListener('mouseout', e => {
+        if (e.target.closest('.heatmap-cell')) document.getElementById('heatmap-tooltip').style.display = 'none';
+      });
+    }
+
+    async function loadQuickStats() {
+      const [apps, tasks, meets, projs] = await Promise.all([
+        fetch('/api/applications').then(r=>r.json()),
+        fetch('/api/tasks').then(r=>r.json()),
+        fetch('/api/meetings').then(r=>r.json()),
+        fetch('/api/projects').then(r=>r.json())
+      ]);
+      const now = new Date();
+      const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+      const meetsThisMonth = meets.filter(m => m.date && m.date.startsWith(thisMonth)).length;
+      const activeProjs = projs.filter(p => p.status === 'active').length;
+      const openTasks = tasks.filter(t => t.status !== 'done').length;
+      document.getElementById('quick-stats').innerHTML = `
+        <div class="stat-card"><div class="stat-num">${apps.length}</div><div class="stat-label">Applications</div></div>
+        <div class="stat-card"><div class="stat-num">${openTasks}</div><div class="stat-label">Open Tasks</div></div>
+        <div class="stat-card"><div class="stat-num">${meetsThisMonth}</div><div class="stat-label">Meetings (month)</div></div>
+        <div class="stat-card"><div class="stat-num">${activeProjs}</div><div class="stat-label">Active Projects</div></div>`;
+    }
+
+    async function loadTodayNote() {
+      const today = new Date().toISOString().slice(0, 10);
+      const r = await fetch(`/api/daily-log/${today}`);
+      const d = await r.json();
+      document.getElementById('daily-note').value = d.notes || '';
+    }
+
+    async function saveDailyNote() {
+      const today = new Date().toISOString().slice(0, 10);
+      const notes = document.getElementById('daily-note').value;
+      await fetch('/api/daily-log', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({date: today, notes})});
+    }
+
+    // ============ REPORTS ============
+    async function generateReport() {
+      const btn = document.getElementById('rpt-btn');
+      btn.disabled = true; btn.textContent = 'Generating...';
+      document.getElementById('rpt-result').style.display = 'none';
+      const modules = [];
+      if (document.getElementById('rpt-app').checked) modules.push('applications');
+      if (document.getElementById('rpt-tasks').checked) modules.push('tasks');
+      if (document.getElementById('rpt-meet').checked) modules.push('meetings');
+      if (document.getElementById('rpt-proj').checked) modules.push('projects');
+      try {
+        const r = await fetch('/api/report', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+          start_date: document.getElementById('rpt-start').value,
+          end_date: document.getElementById('rpt-end').value,
+          modules
+        })});
+        const data = await r.json();
+        document.getElementById('rpt-result').style.display = 'block';
+        document.getElementById('rpt-result').innerHTML = `
+          <div class="rpt-summary">${esc(data.summary)}</div>
+          <table class="rpt-stats"><tbody>${Object.entries(data.stats).map(([k,v]) => `<tr><td>${k.replace(/_/g,' ')}</td><td>${v}</td></tr>`).join('')}</tbody></table>
+          <div class="rpt-meta">Generated: ${data.generated_at}</div>
+          <button class="btn" onclick="navigator.clipboard.writeText(this.parentElement.innerText)">Copy to clipboard</button>`;
+      } finally {
+        btn.disabled = false; btn.textContent = 'Generate Report';
+      }
+    }
+
+    // Init report dates to current month
+    (function(){
+      const now = new Date();
+      const y = now.getFullYear(), m = String(now.getMonth()+1).padStart(2,'0');
+      document.getElementById('rpt-start').value = `${y}-${m}-01`;
+      document.getElementById('rpt-end').value = `${y}-${m}-${String(new Date(y, now.getMonth()+1, 0).getDate()).padStart(2,'0')}`;
+    })();
+
     // Initial load
-    loadApps();
+    loadDashboard();
   </script>
 </body>
 </html>

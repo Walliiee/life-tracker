@@ -1,5 +1,8 @@
 from flask import Flask, jsonify, request, render_template
 from db import init_db, get_db
+import subprocess
+import json as _json
+from datetime import datetime
 
 app = Flask(__name__)
 init_db()
@@ -231,6 +234,89 @@ def delete_contact(contact_id):
     db.execute("DELETE FROM contacts WHERE id = ?", (contact_id,))
     db.commit()
     return jsonify({"ok": True})
+
+# --- Daily Log API ---
+
+@app.route('/api/daily-log', methods=['GET'])
+def list_daily_logs():
+    db = get_db()
+    rows = db.execute("SELECT * FROM daily_log ORDER BY date DESC").fetchall()
+    return jsonify([dict(r) for r in rows])
+
+@app.route('/api/daily-log/<date>', methods=['GET'])
+def get_daily_log(date):
+    db = get_db()
+    row = db.execute("SELECT * FROM daily_log WHERE date = ?", (date,)).fetchone()
+    if not row:
+        return jsonify({"date": date, "notes": ""})
+    return jsonify(dict(row))
+
+@app.route('/api/daily-log', methods=['POST'])
+def upsert_daily_log():
+    data = request.get_json()
+    db = get_db()
+    db.execute("INSERT INTO daily_log (date, notes) VALUES (?, ?) ON CONFLICT(date) DO UPDATE SET notes = ?",
+               (data['date'], data.get('notes', ''), data.get('notes', '')))
+    db.commit()
+    return jsonify({"ok": True})
+
+# --- Heatmap API ---
+
+@app.route('/api/heatmap')
+def heatmap():
+    year = request.args.get('year', str(datetime.now().year))
+    db = get_db()
+    counts = {}
+    # applications
+    for r in db.execute("SELECT date_applied, COUNT(*) as c FROM applications WHERE strftime('%Y', date_applied)=? GROUP BY date_applied", (year,)).fetchall():
+        counts[r['date_applied']] = counts.get(r['date_applied'], 0) + r['c']
+    # interviews
+    for r in db.execute("SELECT date, COUNT(*) as c FROM interviews WHERE strftime('%Y', date)=? GROUP BY date", (year,)).fetchall():
+        counts[r['date']] = counts.get(r['date'], 0) + r['c']
+    # tasks completed
+    for r in db.execute("SELECT date(updated_at) as d, COUNT(*) as c FROM tasks WHERE status='done' AND strftime('%Y', updated_at)=? GROUP BY d", (year,)).fetchall():
+        counts[r['d']] = counts.get(r['d'], 0) + r['c']
+    # meetings
+    for r in db.execute("SELECT date, COUNT(*) as c FROM meetings WHERE strftime('%Y', date)=? GROUP BY date", (year,)).fetchall():
+        counts[r['date']] = counts.get(r['date'], 0) + r['c']
+    # projects
+    for r in db.execute("SELECT date(last_updated) as d, COUNT(*) as c FROM projects WHERE strftime('%Y', last_updated)=? GROUP BY d", (year,)).fetchall():
+        counts[r['d']] = counts.get(r['d'], 0) + r['c']
+    # convert keys to string dates
+    return jsonify({k: v for k, v in counts.items() if k})
+
+# --- Report API ---
+
+@app.route('/api/report', methods=['POST'])
+def generate_report():
+    data = request.get_json()
+    start = data['start_date']
+    end = data['end_date']
+    modules = data.get('modules', ['applications', 'tasks', 'meetings', 'projects'])
+    db = get_db()
+    stats = {}
+    if 'applications' in modules:
+        stats['applications_sent'] = db.execute("SELECT COUNT(*) as c FROM applications WHERE date_applied BETWEEN ? AND ?", (start, end)).fetchone()['c']
+    if 'applications' in modules or 'interviews' in modules:
+        stats['interviews'] = db.execute("SELECT COUNT(*) as c FROM interviews WHERE date BETWEEN ? AND ?", (start, end)).fetchone()['c']
+    if 'tasks' in modules:
+        done = db.execute("SELECT COUNT(*) as c FROM tasks WHERE status='done' AND date(updated_at) BETWEEN ? AND ?", (start, end)).fetchone()['c']
+        total = db.execute("SELECT COUNT(*) as c FROM tasks").fetchone()['c']
+        stats['tasks_completed'] = done
+        stats['tasks_total'] = total
+    if 'meetings' in modules:
+        stats['meetings'] = db.execute("SELECT COUNT(*) as c FROM meetings WHERE date BETWEEN ? AND ?", (start, end)).fetchone()['c']
+    if 'projects' in modules:
+        stats['active_projects'] = db.execute("SELECT COUNT(*) as c FROM projects WHERE status='active'").fetchone()['c']
+    # Try Ollama summary
+    summary = ""
+    try:
+        prompt = f"You are a personal productivity assistant. Summarize this activity data in 3-4 sentences, highlighting wins and patterns.\n\nPeriod: {start} to {end}\nApplications sent: {stats.get('applications_sent',0)}\nInterviews: {stats.get('interviews',0)}\nTasks completed: {stats.get('tasks_completed',0)} / {stats.get('tasks_total',0)}\nMeetings: {stats.get('meetings',0)}\nActive projects: {stats.get('active_projects',0)}\n\nKeep it concise and motivating."
+        result = subprocess.run(["ollama", "run", "minimax-m2.7:cloud"], input=prompt, capture_output=True, text=True, timeout=60)
+        summary = result.stdout.strip()
+    except Exception:
+        summary = f"Report generated for {start} to {end}. " + ", ".join(f"{k}: {v}" for k, v in stats.items()) + "."
+    return jsonify({"summary": summary, "stats": stats, "generated_at": datetime.now().isoformat()})
 
 if __name__ == '__main__':
     app.run(port=5001, debug=True)
