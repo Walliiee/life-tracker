@@ -1,0 +1,65 @@
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface2: #252836;
+  --text: #e1e4ed;
+  --text-dim: #8b8fa3;
+  --accent: #5b7fff;
+  --border: #2e3144;
+  --blue: #5b7fff;
+  --orange: #f5a623;
+  --red: #e74c5e;
+  --green: #4ecb71;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); }
+nav { background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 1.5rem; height: 3rem; gap: 0; }
+nav .brand { font-weight: 700; margin-right: 2rem; color: var(--accent); }
+nav .tab { padding: 0.5rem 1rem; color: var(--text-dim); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
+nav .tab:hover { color: var(--text); }
+nav .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+main { max-width: 960px; margin: 2rem auto; padding: 0 1.5rem; }
+.section { display: none; }
+.section.active { display: block; }
+
+/* Table */
+table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+th, td { text-align: left; padding: 0.6rem 0.8rem; border-bottom: 1px solid var(--border); }
+th { color: var(--text-dim); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+td { font-size: 0.9rem; }
+
+/* Badges */
+.badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; cursor: pointer; }
+.badge.applied { background: rgba(91,127,255,0.2); color: var(--blue); }
+.badge.interview { background: rgba(245,166,35,0.2); color: var(--orange); }
+.badge.rejected { background: rgba(231,76,94,0.2); color: var(--red); }
+.badge.offer { background: rgba(78,203,113,0.2); color: var(--green); }
+
+/* Summary */
+.summary { display: flex; gap: 1.5rem; margin-bottom: 1rem; font-size: 0.9rem; color: var(--text-dim); }
+.summary span { color: var(--text); font-weight: 600; }
+
+/* Buttons */
+.btn { background: var(--accent); color: #fff; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
+.btn:hover { opacity: 0.9; }
+.btn-sm { padding: 0.3rem 0.6rem; font-size: 0.8rem; }
+.btn-danger { background: var(--red); }
+.header-row { display: flex; justify-content: space-between; align-items: center; }
+
+/* Modal */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; justify-content: center; align-items: center; }
+.modal-overlay.show { display: flex; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.5rem; width: 400px; max-width: 90vw; }
+.modal h3 { margin-bottom: 1rem; }
+.modal label { display: block; margin-top: 0.8rem; color: var(--text-dim); font-size: 0.8rem; }
+.modal input, .modal select, .modal textarea { width: 100%; padding: 0.5rem; margin-top: 0.3rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.9rem; }
+.modal textarea { height: 60px; resize: vertical; }
+.modal .actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.2rem; }
+.modal .btn-cancel { background: var(--surface2); color: var(--text-dim); }
+
+/* Status dropdown */
+.status-select { position: relative; display: inline-block; }
+.status-menu { display: none; position: absolute; top: 100%; left: 0; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; z-index: 50; min-width: 120px; }
+.status-menu.show { display: block; }
+.status-menu div { padding: 0.4rem 0.8rem; cursor: pointer; font-size: 0.8rem; }
+.status-menu div:hover { background: var(--border); }

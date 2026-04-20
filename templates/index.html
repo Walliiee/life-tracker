@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Life Tracker</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <nav>
+    <div class="brand">🐺🦅 Life Tracker</div>
+    <div class="tab active" data-section="applications">Applications</div>
+    <div class="tab" data-section="interviews">Interviews</div>
+    <div class="tab" data-section="tasks">Tasks</div>
+    <div class="tab" data-section="projects">Projects</div>
+    <div class="tab" data-section="meetings">Meetings</div>
+    <div class="tab" data-section="contacts">Contacts</div>
+  </nav>
+
+  <main>
+    <!-- Applications -->
+    <div class="section active" id="sec-applications">
+      <div class="header-row">
+        <div class="summary" id="app-summary"></div>
+        <button class="btn" onclick="openAddModal()">+ Add</button>
+      </div>
+      <table>
+        <thead><tr><th>Company</th><th>Role</th><th>Date</th><th>Status</th><th></th></tr></thead>
+        <tbody id="app-tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="section" id="sec-interviews"><p style="color:var(--text-dim)">Coming soon</p></div>
+    <div class="section" id="sec-tasks"><p style="color:var(--text-dim)">Coming soon</p></div>
+    <div class="section" id="sec-projects"><p style="color:var(--text-dim)">Coming soon</p></div>
+    <div class="section" id="sec-meetings"><p style="color:var(--text-dim)">Coming soon</p></div>
+    <div class="section" id="sec-contacts"><p style="color:var(--text-dim)">Coming soon</p></div>
+  </main>
+
+  <!-- Add Modal -->
+  <div class="modal-overlay" id="add-modal">
+    <div class="modal">
+      <h3>Add Application</h3>
+      <label>Company</label><input id="m-company">
+      <label>Role</label><input id="m-role">
+      <label>Date Applied</label><input id="m-date" type="date">
+      <label>Status</label>
+      <select id="m-status">
+        <option value="applied">Applied</option>
+        <option value="interview">Interview</option>
+        <option value="rejected">Rejected</option>
+        <option value="offer">Offer</option>
+      </select>
+      <label>Notes</label><textarea id="m-notes"></textarea>
+      <div class="actions">
+        <button class="btn btn-cancel" onclick="closeAddModal()">Cancel</button>
+        <button class="btn" onclick="submitApplication()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status change menu (reused) -->
+  <div class="status-menu" id="status-menu">
+    <div data-val="applied" class="badge applied">Applied</div>
+    <div data-val="interview" class="badge interview">Interview</div>
+    <div data-val="rejected" class="badge rejected">Rejected</div>
+    <div data-val="offer" class="badge offer">Offer</div>
+  </div>
+
+  <script>
+    // Tabs
+    document.querySelectorAll('nav .tab').forEach(t => {
+      t.onclick = () => {
+        document.querySelectorAll('nav .tab').forEach(x => x.classList.remove('active'));
+        document.querySelectorAll('.section').forEach(x => x.classList.remove('active'));
+        t.classList.add('active');
+        document.getElementById('sec-' + t.dataset.section).classList.add('active');
+      };
+    });
+
+    // Applications
+    let apps = [];
+    let currentStatusId = null;
+
+    async function loadApps() {
+      const r = await fetch('/api/applications');
+      apps = await r.json();
+      renderApps();
+    }
+
+    function renderApps() {
+      const counts = {applied:0, interview:0, rejected:0, offer:0};
+      apps.forEach(a => counts[a.status]++);
+      document.getElementById('app-summary').innerHTML =
+        `<span>${counts.applied}</span> applied · <span>${counts.interview}</span> interviews · <span>${counts.offer}</span> offers`;
+
+      document.getElementById('app-tbody').innerHTML = apps.map(a => `
+        <tr>
+          <td>${esc(a.company)}</td>
+          <td>${esc(a.role)}</td>
+          <td>${a.date_applied}</td>
+          <td><span class="badge ${a.status}" onclick="openStatusMenu(event, ${a.id})">${capitalize(a.status)}</span></td>
+          <td><button class="btn btn-sm btn-danger" onclick="deleteApp(${a.id})">×</button></td>
+        </tr>
+      `).join('');
+    }
+
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+    function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+    // Add modal
+    function openAddModal() {
+      document.getElementById('add-modal').classList.add('show');
+      document.getElementById('m-date').value = new Date().toISOString().slice(0,10);
+    }
+    function closeAddModal() { document.getElementById('add-modal').classList.remove('show'); }
+
+    async function submitApplication() {
+      const body = {
+        company: document.getElementById('m-company').value,
+        role: document.getElementById('m-role').value,
+        date_applied: document.getElementById('m-date').value,
+        status: document.getElementById('m-status').value,
+        notes: document.getElementById('m-notes').value,
+      };
+      await fetch('/api/applications', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+      closeAddModal();
+      loadApps();
+    }
+
+    // Status inline update
+    function openStatusMenu(e, id) {
+      e.stopPropagation();
+      currentStatusId = id;
+      const menu = document.getElementById('status-menu');
+      const rect = e.target.getBoundingClientRect();
+      menu.style.top = rect.bottom + 'px';
+      menu.style.left = rect.left + 'px';
+      menu.classList.add('show');
+    }
+
+    document.addEventListener('click', () => {
+      document.getElementById('status-menu').classList.remove('show');
+    });
+
+    document.querySelectorAll('#status-menu div').forEach(opt => {
+      opt.onclick = async (e) => {
+        e.stopPropagation();
+        await fetch(`/api/applications/${currentStatusId}`, {
+          method: 'PUT',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({status: opt.dataset.val})
+        });
+        document.getElementById('status-menu').classList.remove('show');
+        loadApps();
+      };
+    });
+
+    async function deleteApp(id) {
+      if (!confirm('Delete this application?')) return;
+      await fetch(`/api/applications/${id}`, {method:'DELETE'});
+      loadApps();
+    }
+
+    loadApps();
+  </script>
+</body>
+</html>
