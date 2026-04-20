@@ -7,16 +7,39 @@
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+  <!-- Toast container -->
+  <div id="toast-container"></div>
+
+  <!-- Confirmation dialog -->
+  <div id="confirm-dialog" class="modal-overlay">
+    <div class="modal" style="width:320px">
+      <h3 id="confirm-title">Confirm</h3>
+      <p id="confirm-message" style="color:var(--text-dim);margin:1rem 0;font-size:0.9rem"></p>
+      <div class="actions">
+        <button class="btn btn-cancel" onclick="closeConfirm()">Cancel</button>
+        <button class="btn btn-danger" id="confirm-btn" onclick="doConfirm()">Delete</button>
+      </div>
+    </div>
+  </div>
+
   <nav>
     <div class="brand">🐺🦅 Life Tracker</div>
-    <div class="tab active" data-section="dashboard">Dashboard</div>
-    <div class="tab" data-section="applications">Applications</div>
-    <div class="tab" data-section="interviews">Interviews</div>
-    <div class="tab" data-section="tasks">Tasks</div>
-    <div class="tab" data-section="projects">Projects</div>
-    <div class="tab" data-section="meetings">Meetings</div>
-    <div class="tab" data-section="contacts">Contacts</div>
-    <div class="tab" data-section="reports">Reports</div>
+    <div class="nav-search-wrap" id="nav-search-wrap">
+      <button class="nav-search-btn" onclick="openSearch()" title="Search (⌘K)">🔍</button>
+      <input id="nav-search-input" class="nav-search-input" placeholder="Search..." oninput="onSearchInput(this.value)" onblur="setTimeout(closeSearch,200)">
+      <div id="search-results" class="search-results-dropdown"></div>
+    </div>
+    <div class="hamburger" id="hamburger" onclick="toggleMobileMenu()">☰</div>
+    <div class="nav-tabs" id="nav-tabs">
+      <div class="tab active" data-section="dashboard">Dashboard</div>
+      <div class="tab" data-section="applications">Applications</div>
+      <div class="tab" data-section="interviews">Interviews</div>
+      <div class="tab" data-section="tasks">Tasks</div>
+      <div class="tab" data-section="projects">Projects</div>
+      <div class="tab" data-section="meetings">Meetings</div>
+      <div class="tab" data-section="contacts">Contacts</div>
+      <div class="tab" data-section="reports">Reports</div>
+    </div>
   </nav>
 
   <main>
@@ -33,19 +56,52 @@
     </div>
 
     <!-- Applications -->
-    <div class="section active" id="sec-applications">
+    <div class="section" id="sec-applications">
       <div class="header-row">
         <div class="summary" id="app-summary"></div>
         <button class="btn" onclick="openAppModal()">+ Add</button>
       </div>
       <table>
-        <thead><tr><th>Company</th><th>Role</th><th>Date</th><th>Status</th><th></th></tr></thead>
+        <thead><tr><th>Company</th><th>Role</th><th>Date</th><th>Status</th><th>Interviews</th><th></th></tr></thead>
         <tbody id="app-tbody"></tbody>
       </table>
+      <div class="empty-state" id="app-empty">
+        <div class="empty-icon">📋</div>
+        <div class="empty-title">No applications yet</div>
+        <div class="empty-sub">Track your job applications — add your first one</div>
+        <button class="btn" onclick="openAppModal()">+ Add Application</button>
+      </div>
+      <!-- Inline interviews for selected application -->
+      <div id="app-interviews-panel" class="inline-interviews-panel" style="display:none">
+        <div class="inline-interviews-header">
+          <span id="app-interviews-title">Interviews</span>
+          <button class="btn btn-cancel btn-sm" onclick="closeAppInterviews()">✕ Close</button>
+        </div>
+        <table>
+          <thead><tr><th>Date</th><th>Type</th><th>Outcome</th><th>Notes</th><th></th></tr></thead>
+          <tbody id="app-interviews-tbody"></tbody>
+        </table>
+        <button class="btn btn-sm" style="margin-top:0.5rem" onclick="openInterviewModalForApp()">+ Add Interview</button>
+      </div>
     </div>
 
     <!-- Interviews -->
-    <div class="section" id="sec-interviews"><p style="color:var(--text-dim)">Coming soon</p></div>
+    <div class="section" id="sec-interviews">
+      <div class="header-row">
+        <div class="summary" id="interview-summary"></div>
+        <button class="btn" onclick="openInterviewModal()">+ Add Interview</button>
+      </div>
+      <table>
+        <thead><tr><th>Company</th><th>Role</th><th>Date</th><th>Type</th><th>Outcome</th><th>Notes</th><th></th></tr></thead>
+        <tbody id="interview-tbody"></tbody>
+      </table>
+      <div class="empty-state" id="interview-empty">
+        <div class="empty-icon">🎤</div>
+        <div class="empty-title">No interviews logged</div>
+        <div class="empty-sub">Keep track of your interview history</div>
+        <button class="btn" onclick="openInterviewModal()">+ Add Interview</button>
+      </div>
+    </div>
 
     <!-- Tasks (Kanban) -->
     <div class="section" id="sec-tasks">
@@ -67,6 +123,12 @@
           <div class="kanban-cards" id="kanban-done"></div>
         </div>
       </div>
+      <div class="empty-state" id="task-empty" style="display:none">
+        <div class="empty-icon">✅</div>
+        <div class="empty-title">No tasks yet</div>
+        <div class="empty-sub">Add tasks to stay on top of your work</div>
+        <button class="btn" onclick="openTaskModal()">+ Add Task</button>
+      </div>
     </div>
 
     <!-- Projects -->
@@ -76,6 +138,12 @@
         <button class="btn" onclick="openProjectModal()">+ Add Project</button>
       </div>
       <div id="proj-list"></div>
+      <div class="empty-state" id="proj-empty">
+        <div class="empty-icon">🚀</div>
+        <div class="empty-title">No projects yet</div>
+        <div class="empty-sub">Track your side projects and experiments</div>
+        <button class="btn" onclick="openProjectModal()">+ Add Project</button>
+      </div>
     </div>
 
     <!-- Meetings -->
@@ -85,6 +153,12 @@
         <button class="btn" onclick="openMeetingModal()">+ Log Meeting</button>
       </div>
       <div id="meet-list"></div>
+      <div class="empty-state" id="meet-empty">
+        <div class="empty-icon">🤝</div>
+        <div class="empty-title">No meetings logged</div>
+        <div class="empty-sub">Record networking calls and meetings</div>
+        <button class="btn" onclick="openMeetingModal()">+ Log Meeting</button>
+      </div>
     </div>
 
     <!-- Reports -->
@@ -116,13 +190,49 @@
         <thead><tr><th>Name</th><th>Relationship</th><th>Company</th><th>Last Contact</th><th>Notes</th><th></th></tr></thead>
         <tbody id="contact-tbody"></tbody>
       </table>
+      <div class="empty-state" id="contact-empty">
+        <div class="empty-icon">👤</div>
+        <div class="empty-title">No contacts yet</div>
+        <div class="empty-sub">Build your professional network</div>
+        <button class="btn" onclick="openContactModal()">+ Add Contact</button>
+      </div>
     </div>
   </main>
+
+  <!-- Interview Modal -->
+  <div class="modal-overlay" id="interview-modal">
+    <div class="modal">
+      <h3 id="interview-modal-title">Add Interview</h3>
+      <label>Application</label>
+      <select id="im-app">
+        <option value="">— select application —</option>
+      </select>
+      <label>Date</label><input id="im-date" type="date">
+      <label>Type</label>
+      <select id="im-type">
+        <option value="phone">Phone</option>
+        <option value="video">Video</option>
+        <option value="onsite">Onsite</option>
+      </select>
+      <label>Outcome</label>
+      <select id="im-outcome">
+        <option value="pending">Pending</option>
+        <option value="passed">Passed</option>
+        <option value="failed">Failed</option>
+      </select>
+      <label>Notes</label><textarea id="im-notes"></textarea>
+      <div class="actions">
+        <button class="btn btn-cancel" onclick="closeModal('interview-modal')">Cancel</button>
+        <button class="btn" id="im-submit-btn" onclick="submitInterview()">Save</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Application Modal -->
   <div class="modal-overlay" id="app-modal">
     <div class="modal">
-      <h3>Add Application</h3>
+      <h3 id="app-modal-title">Add Application</h3>
+      <input type="hidden" id="m-edit-id">
       <label>Company</label><input id="m-company">
       <label>Role</label><input id="m-role">
       <label>Date Applied</label><input id="m-date" type="date">
@@ -136,7 +246,7 @@
       <label>Notes</label><textarea id="m-notes"></textarea>
       <div class="actions">
         <button class="btn btn-cancel" onclick="closeModal('app-modal')">Cancel</button>
-        <button class="btn" onclick="submitApplication()">Save</button>
+        <button class="btn" id="m-submit-btn" onclick="submitApplication()">Save</button>
       </div>
     </div>
   </div>
@@ -144,7 +254,8 @@
   <!-- Task Modal -->
   <div class="modal-overlay" id="task-modal">
     <div class="modal">
-      <h3>Add Task</h3>
+      <h3 id="task-modal-title">Add Task</h3>
+      <input type="hidden" id="tm-edit-id">
       <label>Title</label><input id="tm-title">
       <label>Priority</label>
       <select id="tm-priority">
@@ -164,7 +275,8 @@
   <!-- Project Modal -->
   <div class="modal-overlay" id="project-modal">
     <div class="modal">
-      <h3>Add Project</h3>
+      <h3 id="project-modal-title">Add Project</h3>
+      <input type="hidden" id="pm-edit-id">
       <label>Name</label><input id="pm-name">
       <label>Type</label>
       <select id="pm-type">
@@ -190,7 +302,8 @@
   <!-- Meeting Modal -->
   <div class="modal-overlay" id="meeting-modal">
     <div class="modal">
-      <h3>Log Meeting</h3>
+      <h3 id="meeting-modal-title">Log Meeting</h3>
+      <input type="hidden" id="mm-edit-id">
       <label>Person Name</label><input id="mm-name" list="contact-names">
       <datalist id="contact-names"></datalist>
       <label>Date</label><input id="mm-date" type="date">
@@ -207,7 +320,8 @@
   <!-- Contact Modal -->
   <div class="modal-overlay" id="contact-modal">
     <div class="modal">
-      <h3>Add Contact</h3>
+      <h3 id="contact-modal-title">Add Contact</h3>
+      <input type="hidden" id="cm-edit-id">
       <label>Name</label><input id="cm-name">
       <label>Relationship</label>
       <select id="cm-rel">
@@ -238,6 +352,8 @@
     // --- Utilities ---
     function esc(s) { const d = document.createElement('div'); d.textContent = s||''; return d.innerHTML; }
     function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+    let activeSection = 'dashboard';
+
     function closeModal(id) { document.getElementById(id).classList.remove('show'); }
     function daysAgo(dateStr) {
       if (!dateStr) return null;
@@ -251,69 +367,356 @@
       return Math.floor(diff/365) + ' year' + (Math.floor(diff/365)>1?'s':'') + ' ago';
     }
 
-    // Tabs
+    // --- Toast notifications ---
+    function showToast(message, type='success') {
+      const c = document.getElementById('toast-container');
+      const t = document.createElement('div');
+      t.className = 'toast toast-' + type;
+      t.textContent = message;
+      c.appendChild(t);
+      setTimeout(() => t.classList.add('show'), 10);
+      setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 400); }, 3000);
+    }
+
+    // --- Confirmation dialog ---
+    let _confirmCallback = null;
+    function confirm(msg, cb) {
+      document.getElementById('confirm-message').textContent = msg;
+      _confirmCallback = cb;
+      document.getElementById('confirm-dialog').classList.add('show');
+    }
+    function closeConfirm() { document.getElementById('confirm-dialog').classList.remove('show'); _confirmCallback = null; }
+    function doConfirm() { if (_confirmCallback) _confirmCallback(); closeConfirm(); }
+
+    // --- Global Search ---
+    let searchTimer = null;
+    function openSearch() {
+      const inp = document.getElementById('nav-search-input');
+      inp.focus();
+      inp.select();
+    }
+    function closeSearch() {
+      document.getElementById('search-results').classList.remove('show');
+      document.getElementById('nav-search-input').value = '';
+    }
+    function onSearchInput(val) {
+      clearTimeout(searchTimer);
+      if (!val.trim()) { document.getElementById('search-results').classList.remove('show'); return; }
+      searchTimer = setTimeout(() => performSearch(val), 200);
+    }
+    async function performSearch(q) {
+      const r = await fetch('/api/search?q=' + encodeURIComponent(q));
+      const data = await r.json();
+      const dd = document.getElementById('search-results');
+      let html = '';
+      const sections = [
+        { key: 'applications', label: 'Applications', icon: '📋' },
+        { key: 'tasks', label: 'Tasks', icon: '✅' },
+        { key: 'projects', label: 'Projects', icon: '🚀' },
+        { key: 'meetings', label: 'Meetings', icon: '🤝' },
+        { key: 'contacts', label: 'Contacts', icon: '👤' }
+      ];
+      let hasResults = false;
+      sections.forEach(s => {
+        if (data[s.key] && data[s.key].length) {
+          hasResults = true;
+          html += `<div class=\"search-group-label\">${s.icon} ${s.label}</div>`;
+          data[s.key].slice(0, 5).forEach(item => {
+            const label = item.company || item.title || item.name || item.person_name || '(no name)';
+            const sub = item.role || item.status || item.date || '';
+            const sec = s.key === 'applications' ? 'applications' : s.key === 'tasks' ? 'tasks' : s.key === 'projects' ? 'projects' : s.key === 'meetings' ? 'meetings' : 'contacts';
+            const id = item.id;
+            html += `<div class=\"search-result-item\" onclick=\"jumpToSearchResult('${sec}', ${id})\">${esc(label)}<span class=\"search-result-sub\">${esc(sub)}</span></div>`;
+          });
+        }
+      });
+      if (!hasResults) html = '<div class="search-no-results">No results found</div>';
+      dd.innerHTML = html;
+      dd.classList.add('show');
+    }
+    function jumpToSearchResult(section, id) {
+      closeSearch();
+      switchSection(section);
+      setTimeout(() => {
+        const el = document.querySelector(`[data-item-id="${id}"]`);
+        if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('highlight'); setTimeout(() => el.classList.remove('highlight'), 2000); }
+      }, 100);
+    }
+
+    // --- Mobile menu ---
+    function toggleMobileMenu() {
+      document.getElementById('nav-tabs').classList.toggle('mobile-open');
+      document.getElementById('hamburger').classList.toggle('open');
+    }
+
+    // --- Section switching ---
+    function switchSection(section) {
+      document.querySelectorAll('nav .tab').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.section').forEach(x => x.classList.remove('active'));
+      document.querySelector(`nav .tab[data-section="${section}"]`).classList.add('active');
+      document.getElementById('sec-' + section).classList.add('active');
+      activeSection = section;
+      // Close mobile menu
+      document.getElementById('nav-tabs').classList.remove('mobile-open');
+      document.getElementById('hamburger').classList.remove('open');
+      // Load data
+      if (section === 'dashboard') loadDashboard();
+      if (section === 'applications') loadApps();
+      if (section === 'interviews') loadInterviews();
+      if (section === 'tasks') loadTasks();
+      if (section === 'projects') loadProjects();
+      if (section === 'meetings') loadMeetings();
+      if (section === 'contacts') loadContacts();
+    }
+
     document.querySelectorAll('nav .tab').forEach(t => {
-      t.onclick = () => {
-        document.querySelectorAll('nav .tab').forEach(x => x.classList.remove('active'));
-        document.querySelectorAll('.section').forEach(x => x.classList.remove('active'));
-        t.classList.add('active');
-        const sec = document.getElementById('sec-' + t.dataset.section);
-        sec.classList.add('active');
-        if (t.dataset.section === 'dashboard') loadDashboard();
-        if (t.dataset.section === 'applications') loadApps();
-        if (t.dataset.section === 'tasks') loadTasks();
-        if (t.dataset.section === 'projects') loadProjects();
-        if (t.dataset.section === 'meetings') loadMeetings();
-        if (t.dataset.section === 'contacts') loadContacts();
-      };
+      t.onclick = () => switchSection(t.dataset.section);
+    });
+
+    // --- Keyboard shortcuts ---
+    document.addEventListener('keydown', e => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-overlay.show').forEach(m => m.classList.remove('show'));
+        closeSearch();
+        closeConfirm();
+        return;
+      }
+      if (e.key === 'n' || e.key === 'N') {
+        if (activeSection === 'applications') openAppModal();
+        else if (activeSection === 'interviews') openInterviewModal();
+        else if (activeSection === 'tasks') openTaskModal();
+        else if (activeSection === 'projects') openProjectModal();
+        else if (activeSection === 'meetings') openMeetingModal();
+        else if (activeSection === 'contacts') openContactModal();
+        return;
+      }
+      const keyMap = { '1':'dashboard', '2':'applications', '3':'interviews', '4':'tasks', '5':'projects', '6':'meetings', '7':'contacts' };
+      if (keyMap[e.key]) switchSection(keyMap[e.key]);
+    });
+
+    // Global ⌘K / Ctrl+K
+    document.addEventListener('keydown', e => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); openSearch(); }
     });
 
     // ============ APPLICATIONS ============
     let apps = [];
+    let interviewCounts = {};
     let currentStatusId = null;
+    let currentInlineAppId = null;
 
     async function loadApps() {
       const r = await fetch('/api/applications');
       apps = await r.json();
+      // Get interview counts
+      const ri = await fetch('/api/interviews');
+      const interviews = await ri.json();
+      interviewCounts = {};
+      interviews.forEach(i => { interviewCounts[i.application_id] = (interviewCounts[i.application_id]||0) + 1; });
       renderApps();
     }
 
     function renderApps() {
+      const hasData = apps.length > 0;
+      document.querySelector('#sec-applications table').style.display = hasData ? '' : 'none';
+      document.getElementById('app-empty').style.display = hasData ? 'none' : '';
+      if (!hasData) return;
       const counts = {applied:0, interview:0, rejected:0, offer:0};
-      apps.forEach(a => counts[a.status]++);
+      apps.forEach(a => counts[a.status] = (counts[a.status]||0) + 1);
       document.getElementById('app-summary').innerHTML =
-        `<span>${counts.applied}</span> applied · <span>${counts.interview}</span> interviews · <span>${counts.offer}</span> offers`;
-      document.getElementById('app-tbody').innerHTML = apps.map(a => `
-        <tr>
+        `<span>${counts.applied||0}</span> applied · <span>${counts.interview||0}</span> interviews · <span>${counts.offer||0}</span> offers`;
+      document.getElementById('app-tbody').innerHTML = apps.map(a => {
+        const ic = interviewCounts[a.id] || 0;
+        const icHtml = ic > 0 ? `<span class="interview-count-badge" onclick="showAppInterviews(${a.id}, '${esc(a.company)}')">${ic}</span>` : '<span class="interview-count-zero">0</span>';
+        return `<tr data-item-id="${a.id}">
           <td>${esc(a.company)}</td><td>${esc(a.role)}</td><td>${a.date_applied}</td>
           <td><span class="badge ${a.status}" onclick="openStatusMenu(event, ${a.id})">${cap(a.status)}</span></td>
-          <td><button class="btn btn-sm btn-danger" onclick="deleteApp(${a.id})">×</button></td>
-        </tr>`).join('');
+          <td class="interviews-cell">${icHtml}</td>
+          <td><button class="btn btn-sm btn-danger" onclick="confirm('Delete this application?', () => deleteApp(${a.id}))">×</button></td>
+        </tr>`;
+      }).join('');
     }
 
-    function openAppModal() { document.getElementById('app-modal').classList.add('show'); document.getElementById('m-date').value = new Date().toISOString().slice(0,10); }
+    function openAppModal(editId) {
+      if (editId) {
+        const a = apps.find(x => x.id === editId);
+        if (a) {
+          document.getElementById('app-modal-title').textContent = 'Edit Application';
+          document.getElementById('m-edit-id').value = editId;
+          document.getElementById('m-company').value = a.company;
+          document.getElementById('m-role').value = a.role;
+          document.getElementById('m-date').value = a.date_applied;
+          document.getElementById('m-status').value = a.status;
+          document.getElementById('m-notes').value = a.notes || '';
+          document.getElementById('m-submit-btn').textContent = 'Update';
+        }
+      } else {
+        document.getElementById('app-modal-title').textContent = 'Add Application';
+        document.getElementById('m-edit-id').value = '';
+        document.getElementById('m-company').value = '';
+        document.getElementById('m-role').value = '';
+        document.getElementById('m-date').value = new Date().toISOString().slice(0,10);
+        document.getElementById('m-status').value = 'applied';
+        document.getElementById('m-notes').value = '';
+        document.getElementById('m-submit-btn').textContent = 'Save';
+      }
+      document.getElementById('app-modal').classList.add('show');
+    }
     async function submitApplication() {
-      await fetch('/api/applications', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
-        company: document.getElementById('m-company').value, role: document.getElementById('m-role').value,
-        date_applied: document.getElementById('m-date').value, status: document.getElementById('m-status').value,
+      const editId = document.getElementById('m-edit-id').value;
+      const payload = {
+        company: document.getElementById('m-company').value,
+        role: document.getElementById('m-role').value,
+        date_applied: document.getElementById('m-date').value,
+        status: document.getElementById('m-status').value,
         notes: document.getElementById('m-notes').value
-      })});
+      };
+      if (!payload.company || !payload.role || !payload.date_applied) { showToast('Please fill in company, role, and date', 'error'); return; }
+      if (editId) {
+        await fetch(`/api/applications/${editId}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+        showToast('Application updated');
+      } else {
+        await fetch('/api/applications', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+        showToast('Application added');
+      }
       closeModal('app-modal'); loadApps();
     }
-    function openStatusMenu(e, id) {
-      e.stopPropagation(); currentStatusId = id;
-      const m = document.getElementById('status-menu'), r = e.target.getBoundingClientRect();
-      m.style.top = r.bottom+'px'; m.style.left = r.left+'px'; m.classList.add('show');
-    }
+    function openStatusMenu(e, id) { e.stopPropagation(); currentStatusId = id; const m = document.getElementById('status-menu'), r = e.target.getBoundingClientRect(); m.style.top = r.bottom+'px'; m.style.left = r.left+'px'; m.classList.add('show'); }
     document.addEventListener('click', () => document.getElementById('status-menu').classList.remove('show'));
     document.querySelectorAll('#status-menu div').forEach(opt => {
       opt.onclick = async e => {
         e.stopPropagation();
         await fetch(`/api/applications/${currentStatusId}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({status: opt.dataset.val})});
-        document.getElementById('status-menu').classList.remove('show'); loadApps();
+        document.getElementById('status-menu').classList.remove('show');
+        showToast('Status updated'); loadApps();
       };
     });
-    async function deleteApp(id) { if (!confirm('Delete?')) return; await fetch(`/api/applications/${id}`,{method:'DELETE'}); loadApps(); }
+    async function deleteApp(id) { await fetch(`/api/applications/${id}`,{method:'DELETE'}); showToast('Application deleted'); loadApps(); }
+
+    // ============ INTERVIEWS ============
+    let interviews = [];
+    let currentEditingInterviewId = null;
+
+    async function loadInterviews() {
+      const r = await fetch('/api/interviews');
+      interviews = await r.json();
+      renderInterviews();
+    }
+
+    function renderInterviews() {
+      const hasData = interviews.length > 0;
+      document.querySelector('#sec-interviews table').style.display = hasData ? '' : 'none';
+      document.getElementById('interview-empty').style.display = hasData ? 'none' : '';
+      if (!hasData) { document.getElementById('interview-summary').innerHTML = '<span>0</span> interviews'; return; }
+      const outcomeCounts = {pending:0, passed:0, failed:0};
+      interviews.forEach(i => outcomeCounts[i.outcome] = (outcomeCounts[i.outcome]||0) + 1);
+      document.getElementById('interview-summary').innerHTML =
+        `<span>${interviews.length}</span> total · <span>${outcomeCounts.pending||0}</span> pending · <span>${outcomeCounts.passed||0}</span> passed`;
+      document.getElementById('interview-tbody').innerHTML = interviews.map(i => `
+        <tr data-item-id="${i.id}">
+          <td>${i.date}</td>
+          <td><span class="badge badge-interview-type badge-type-${i.type}">${cap(i.type)}</span></td>
+          <td><span class="badge badge-outcome-${i.outcome}">${cap(i.outcome)}</span></td>
+          <td class="td-snippet">${esc((i.notes||'').substring(0,60))}</td>
+          <td class="actions-cell">
+            <button class="btn btn-sm" onclick="editInterview(${i.id})">✎</button>
+            <button class="btn btn-sm btn-danger" onclick="confirm('Delete this interview?', () => deleteInterview(${i.id}))">×</button>
+          </td>
+        </tr>`).join('');
+    }
+
+    async function openInterviewModal(appId) {
+      currentEditingInterviewId = null;
+      document.getElementById('interview-modal-title').textContent = 'Add Interview';
+      document.getElementById('im-submit-btn').textContent = 'Save';
+      document.getElementById('im-app').value = appId || '';
+      document.getElementById('im-date').value = new Date().toISOString().slice(0,10);
+      document.getElementById('im-type').value = 'video';
+      document.getElementById('im-outcome').value = 'pending';
+      document.getElementById('im-notes').value = '';
+      // Populate app dropdown
+      const sel = document.getElementById('im-app');
+      if (sel.options.length <= 1) {
+        const r = await fetch('/api/applications');
+        const appsData = await r.json();
+        sel.innerHTML = '<option value="">— select application —</option>' + appsData.map(a => `<option value="${a.id}">${esc(a.company)} — ${esc(a.role)}</option>`).join('');
+        if (appId) sel.value = appId;
+      }
+      document.getElementById('interview-modal').classList.add('show');
+    }
+
+    function openInterviewModalForApp() {
+      openInterviewModal(currentInlineAppId);
+    }
+
+    function editInterview(id) {
+      const i = interviews.find(x => x.id === id);
+      if (!i) return;
+      currentEditingInterviewId = id;
+      document.getElementById('interview-modal-title').textContent = 'Edit Interview';
+      document.getElementById('im-submit-btn').textContent = 'Update';
+      // Populate app dropdown
+      const sel = document.getElementById('im-app');
+      sel.innerHTML = '<option value="">— select application —</option>' + apps.map(a => `<option value="${a.id}">${esc(a.company)} — ${esc(a.role)}</option>`).join('');
+      sel.value = i.application_id;
+      document.getElementById('im-date').value = i.date;
+      document.getElementById('im-type').value = i.type;
+      document.getElementById('im-outcome').value = i.outcome || 'pending';
+      document.getElementById('im-notes').value = i.notes || '';
+      document.getElementById('interview-modal').classList.add('show');
+    }
+
+    async function submitInterview() {
+      const editId = currentEditingInterviewId;
+      const payload = {
+        application_id: parseInt(document.getElementById('im-app').value),
+        date: document.getElementById('im-date').value,
+        type: document.getElementById('im-type').value,
+        outcome: document.getElementById('im-outcome').value,
+        notes: document.getElementById('im-notes').value
+      };
+      if (!payload.application_id || !payload.date) { showToast('Please select an application and date', 'error'); return; }
+      if (editId) {
+        await fetch(`/api/interviews/${editId}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+        showToast('Interview updated');
+      } else {
+        await fetch('/api/interviews', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+        showToast('Interview logged');
+      }
+      closeModal('interview-modal'); loadInterviews(); loadApps();
+    }
+
+    async function deleteInterview(id) {
+      await fetch(`/api/interviews/${id}`, {method:'DELETE'});
+      showToast('Interview deleted'); loadInterviews(); loadApps();
+    }
+
+    async function showAppInterviews(appId, company) {
+      currentInlineAppId = appId;
+      const r = await fetch(`/api/interviews?application_id=${appId}`);
+      const appInterviews = await r.json();
+      document.getElementById('app-interviews-title').textContent = `Interviews — ${company}`;
+      document.getElementById('app-interviews-tbody').innerHTML = appInterviews.length ? appInterviews.map(i => `
+        <tr>
+          <td>${i.date}</td>
+          <td><span class="badge badge-interview-type badge-type-${i.type}">${cap(i.type)}</span></td>
+          <td><span class="badge badge-outcome-${i.outcome||'pending'}">${cap(i.outcome||'pending')}</span></td>
+          <td class="td-snippet">${esc((i.notes||'').substring(0,60))}</td>
+          <td><button class="btn btn-sm btn-danger" onclick="confirm('Delete?', () => deleteInterviewInline(${i.id}, ${appId}))">×</button></td>
+        </tr>`).join('') : '<tr><td colspan="4" style="color:var(--text-dim);text-align:center;padding:1rem">No interviews yet</td></tr>';
+      document.getElementById('app-interviews-panel').style.display = 'block';
+    }
+
+    async function deleteInterviewInline(id, appId) {
+      await fetch(`/api/interviews/${id}`, {method:'DELETE'});
+      showToast('Interview deleted'); loadApps(); showAppInterviews(appId, document.getElementById('app-interviews-title').textContent.replace('Interviews — ', ''));
+    }
+
+    function closeAppInterviews() {
+      document.getElementById('app-interviews-panel').style.display = 'none';
+      currentInlineAppId = null;
+    }
 
     // ============ TASKS (Kanban) ============
     let tasks = [];
@@ -321,17 +724,21 @@
       const r = await fetch('/api/tasks'); tasks = await r.json(); renderTasks();
     }
     function renderTasks() {
+      const hasData = tasks.length > 0;
+      document.querySelector('#sec-tasks .kanban').style.display = hasData ? '' : 'none';
+      document.getElementById('task-empty').style.display = hasData ? 'none' : '';
+      if (!hasData) return;
       const counts = {todo:0, started:0, done:0};
       tasks.forEach(t => counts[t.status]++);
       document.getElementById('task-summary').innerHTML =
-        `<span>${counts.todo}</span> todo · <span>${counts.started}</span> started · <span>${counts.done}</span> done`;
+        `<span>${counts.todo||0}</span> todo · <span>${counts.started||0}</span> started · <span>${counts.done||0}</span> done`;
       ['todo','started','done'].forEach(s => {
         document.getElementById('kanban-'+s).innerHTML = tasks.filter(t=>t.status===s).map(t => {
           const pCls = t.priority==='high'?'priority-high':t.priority==='medium'?'priority-medium':'priority-low';
-          return `<div class="kanban-card" draggable="true" ondragstart="dragTask(event,${t.id})" data-id="${t.id}">
+          return `<div class="kanban-card" draggable="true" ondragstart="dragTask(event,${t.id})" data-id="${t.id}" data-item-id="${t.id}">
             <div class="card-title">${esc(t.title)}</div>
             <div class="card-meta"><span class="priority-badge ${pCls}">${cap(t.priority)}</span>${t.due_date?' · '+t.due_date:''}</div>
-            <button class="btn btn-sm btn-danger card-del" onclick="deleteTask(${t.id})">×</button>
+            <button class="btn btn-sm btn-danger card-del" onclick="confirm('Delete this task?', () => deleteTask(${t.id}))">×</button>
           </div>`;
         }).join('');
       });
@@ -342,17 +749,48 @@
       const id = e.dataTransfer.getData('text/plain');
       if (!id) return;
       await fetch(`/api/tasks/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({status})});
-      loadTasks();
+      showToast('Task moved'); loadTasks();
     }
-    function openTaskModal() { document.getElementById('task-modal').classList.add('show'); }
+    function openTaskModal(editId) {
+      if (editId) {
+        const t = tasks.find(x => x.id === editId);
+        if (t) {
+          document.getElementById('task-modal-title').textContent = 'Edit Task';
+          document.getElementById('tm-edit-id').value = editId;
+          document.getElementById('tm-title').value = t.title;
+          document.getElementById('tm-priority').value = t.priority;
+          document.getElementById('tm-due').value = t.due_date || '';
+          document.getElementById('tm-notes').value = t.notes || '';
+        }
+      } else {
+        document.getElementById('task-modal-title').textContent = 'Add Task';
+        document.getElementById('tm-edit-id').value = '';
+        document.getElementById('tm-title').value = '';
+        document.getElementById('tm-priority').value = 'medium';
+        document.getElementById('tm-due').value = '';
+        document.getElementById('tm-notes').value = '';
+      }
+      document.getElementById('task-modal').classList.add('show');
+    }
     async function submitTask() {
-      await fetch('/api/tasks', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
-        title: document.getElementById('tm-title').value, priority: document.getElementById('tm-priority').value,
-        due_date: document.getElementById('tm-due').value, notes: document.getElementById('tm-notes').value
-      })});
+      const editId = document.getElementById('tm-edit-id').value;
+      const payload = {
+        title: document.getElementById('tm-title').value,
+        priority: document.getElementById('tm-priority').value,
+        due_date: document.getElementById('tm-due').value,
+        notes: document.getElementById('tm-notes').value
+      };
+      if (!payload.title) { showToast('Please enter a title', 'error'); return; }
+      if (editId) {
+        await fetch(`/api/tasks/${editId}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+        showToast('Task updated');
+      } else {
+        await fetch('/api/tasks', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+        showToast('Task added');
+      }
       closeModal('task-modal'); loadTasks();
     }
-    async function deleteTask(id) { if (!confirm('Delete?')) return; await fetch(`/api/tasks/${id}`,{method:'DELETE'}); loadTasks(); }
+    async function deleteTask(id) { await fetch(`/api/tasks/${id}`,{method:'DELETE'}); showToast('Task deleted'); loadTasks(); }
 
     // ============ PROJECTS ============
     let projects = [];
@@ -360,32 +798,69 @@
       const r = await fetch('/api/projects'); projects = await r.json(); renderProjects();
     }
     function renderProjects() {
+      const hasData = projects.length > 0;
+      document.getElementById('proj-list').style.display = hasData ? '' : 'none';
+      document.getElementById('proj-empty').style.display = hasData ? 'none' : '';
+      if (!hasData) { document.getElementById('proj-summary').innerHTML = '<span>0</span> projects'; return; }
       const counts = {active:0, paused:0, done:0};
       projects.forEach(p => counts[p.status]++);
       document.getElementById('proj-summary').innerHTML =
-        `<span>${counts.active}</span> active · <span>${counts.paused}</span> paused · <span>${counts.done}</span> done`;
+        `<span>${counts.active||0}</span> active · <span>${counts.paused||0}</span> paused · <span>${counts.done||0}</span> done`;
       document.getElementById('proj-list').innerHTML = projects.map(p => `
-        <div class="proj-card">
+        <div class="proj-card" data-item-id="${p.id}">
           <div class="proj-header">
             <span class="proj-name">${esc(p.name)}</span>
             <span class="badge badge-type-${p.type}">${cap(p.type)}</span>
             <span class="badge badge-status-${p.status}">${cap(p.status)}</span>
           </div>
-          <div class="proj-desc">${esc(p.description).substring(0,120)}${p.description&&p.description.length>120?'…':''}</div>
+          <div class="proj-desc">${esc(p.description||'').substring(0,120)}${p.description&&p.description.length>120?'…':''}</div>
           ${p.repo_url ? `<a class="proj-link" href="${esc(p.repo_url)}" target="_blank">Repo ↗</a>` : ''}
-          <button class="btn btn-sm btn-danger card-del" onclick="deleteProject(${p.id})">×</button>
+          <button class="btn btn-sm btn-danger card-del" onclick="confirm('Delete this project?', () => deleteProject(${p.id}))">×</button>
         </div>`).join('');
     }
-    function openProjectModal() { document.getElementById('project-modal').classList.add('show'); }
+    function openProjectModal(editId) {
+      if (editId) {
+        const p = projects.find(x => x.id === editId);
+        if (p) {
+          document.getElementById('project-modal-title').textContent = 'Edit Project';
+          document.getElementById('pm-edit-id').value = editId;
+          document.getElementById('pm-name').value = p.name;
+          document.getElementById('pm-type').value = p.type;
+          document.getElementById('pm-status').value = p.status;
+          document.getElementById('pm-desc').value = p.description || '';
+          document.getElementById('pm-repo').value = p.repo_url || '';
+        }
+      } else {
+        document.getElementById('project-modal-title').textContent = 'Add Project';
+        document.getElementById('pm-edit-id').value = '';
+        document.getElementById('pm-name').value = '';
+        document.getElementById('pm-type').value = 'coding';
+        document.getElementById('pm-status').value = 'active';
+        document.getElementById('pm-desc').value = '';
+        document.getElementById('pm-repo').value = '';
+      }
+      document.getElementById('project-modal').classList.add('show');
+    }
     async function submitProject() {
-      await fetch('/api/projects', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
-        name: document.getElementById('pm-name').value, type: document.getElementById('pm-type').value,
-        status: document.getElementById('pm-status').value, description: document.getElementById('pm-desc').value,
+      const editId = document.getElementById('pm-edit-id').value;
+      const payload = {
+        name: document.getElementById('pm-name').value,
+        type: document.getElementById('pm-type').value,
+        status: document.getElementById('pm-status').value,
+        description: document.getElementById('pm-desc').value,
         repo_url: document.getElementById('pm-repo').value
-      })});
+      };
+      if (!payload.name) { showToast('Please enter a name', 'error'); return; }
+      if (editId) {
+        await fetch(`/api/projects/${editId}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+        showToast('Project updated');
+      } else {
+        await fetch('/api/projects', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+        showToast('Project added');
+      }
       closeModal('project-modal'); loadProjects();
     }
-    async function deleteProject(id) { if (!confirm('Delete?')) return; await fetch(`/api/projects/${id}`,{method:'DELETE'}); loadProjects(); }
+    async function deleteProject(id) { await fetch(`/api/projects/${id}`,{method:'DELETE'}); showToast('Project deleted'); loadProjects(); }
 
     // ============ MEETINGS ============
     let meetings = [];
@@ -393,41 +868,73 @@
       const r = await fetch('/api/meetings'); meetings = await r.json(); renderMeetings();
     }
     function renderMeetings() {
+      const hasData = meetings.length > 0;
+      document.getElementById('meet-list').style.display = hasData ? '' : 'none';
+      document.getElementById('meet-empty').style.display = hasData ? 'none' : '';
       document.getElementById('meet-summary').innerHTML = `<span>${meetings.length}</span> meetings logged`;
       document.getElementById('meet-list').innerHTML = meetings.map(m => `
-        <div class="meet-card" onclick="this.classList.toggle('expanded')">
+        <div class="meet-card" data-item-id="${m.id}" onclick="this.classList.toggle('expanded')">
           <div class="meet-header">
             <span class="meet-person">${esc(m.person_name)}</span>
             <span class="meet-date">${m.date}</span>
           </div>
           <div class="meet-topics">${esc((m.topics||'').substring(0,100))}</div>
-          <div class="meet-outcome">${esc(m.outcome)}</div>
+          <div class="meet-outcome">${esc(m.outcome||'')}</div>
           <div class="meet-detail">
-            <strong>Topics:</strong> ${esc(m.topics)}<br>
-            <strong>Next Steps:</strong> ${esc(m.next_steps)}
+            <strong>Topics:</strong> ${esc(m.topics||'—')}<br>
+            <strong>Next Steps:</strong> ${esc(m.next_steps||'—')}
           </div>
-          <button class="btn btn-sm btn-danger card-del" onclick="event.stopPropagation();deleteMeeting(${m.id})">×</button>
+          <button class="btn btn-sm btn-danger card-del" onclick="event.stopPropagation();confirm('Delete this meeting?', () => deleteMeeting(${m.id}))">×</button>
         </div>`).join('');
     }
-    function openMeetingModal() {
+    function openMeetingModal(editId) {
+      if (editId) {
+        const m = meetings.find(x => x.id === editId);
+        if (m) {
+          document.getElementById('meeting-modal-title').textContent = 'Edit Meeting';
+          document.getElementById('mm-edit-id').value = editId;
+          document.getElementById('mm-name').value = m.person_name;
+          document.getElementById('mm-date').value = m.date;
+          document.getElementById('mm-topics').value = m.topics || '';
+          document.getElementById('mm-outcome').value = m.outcome || '';
+          document.getElementById('mm-next').value = m.next_steps || '';
+        }
+      } else {
+        document.getElementById('meeting-modal-title').textContent = 'Log Meeting';
+        document.getElementById('mm-edit-id').value = '';
+        document.getElementById('mm-name').value = '';
+        document.getElementById('mm-date').value = new Date().toISOString().slice(0,10);
+        document.getElementById('mm-topics').value = '';
+        document.getElementById('mm-outcome').value = '';
+        document.getElementById('mm-next').value = '';
+        loadContactNames();
+      }
       document.getElementById('meeting-modal').classList.add('show');
-      document.getElementById('mm-date').value = new Date().toISOString().slice(0,10);
-      // Populate contact names datalist
-      loadContactNames();
     }
     async function loadContactNames() {
       const r = await fetch('/api/contacts'); const contacts = await r.json();
       document.getElementById('contact-names').innerHTML = contacts.map(c => `<option value="${esc(c.name)}">`).join('');
     }
     async function submitMeeting() {
-      await fetch('/api/meetings', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
-        person_name: document.getElementById('mm-name').value, date: document.getElementById('mm-date').value,
-        topics: document.getElementById('mm-topics').value, outcome: document.getElementById('mm-outcome').value,
+      const editId = document.getElementById('mm-edit-id').value;
+      const payload = {
+        person_name: document.getElementById('mm-name').value,
+        date: document.getElementById('mm-date').value,
+        topics: document.getElementById('mm-topics').value,
+        outcome: document.getElementById('mm-outcome').value,
         next_steps: document.getElementById('mm-next').value
-      })});
+      };
+      if (!payload.person_name || !payload.date) { showToast('Please enter name and date', 'error'); return; }
+      if (editId) {
+        await fetch(`/api/meetings/${editId}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+        showToast('Meeting updated');
+      } else {
+        await fetch('/api/meetings', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+        showToast('Meeting logged');
+      }
       closeModal('meeting-modal'); loadMeetings();
     }
-    async function deleteMeeting(id) { if (!confirm('Delete?')) return; await fetch(`/api/meetings/${id}`,{method:'DELETE'}); loadMeetings(); }
+    async function deleteMeeting(id) { await fetch(`/api/meetings/${id}`,{method:'DELETE'}); showToast('Meeting deleted'); loadMeetings(); }
 
     // ============ CONTACTS ============
     let contacts = [];
@@ -435,32 +942,69 @@
       const r = await fetch('/api/contacts'); contacts = await r.json(); renderContacts();
     }
     function renderContacts() {
+      const hasData = contacts.length > 0;
+      document.querySelector('#sec-contacts table').style.display = hasData ? '' : 'none';
+      document.getElementById('contact-empty').style.display = hasData ? 'none' : '';
       document.getElementById('contact-summary').innerHTML = `<span>${contacts.length}</span> contacts`;
+      if (!hasData) return;
       document.getElementById('contact-tbody').innerHTML = contacts.map(c => {
         const lcd = daysAgo(c.last_contact_date);
         const colorCls = !c.last_contact_date ? 'lcd-never' :
-          c.last_contact_date && (Math.floor((Date.now()-new Date(c.last_contact_date).getTime())/86400000)) < 7 ? 'lcd-green' :
-          (Math.floor((Date.now()-new Date(c.last_contact_date).getTime())/86400000)) < 30 ? 'lcd-yellow' : 'lcd-red';
-        return `<tr>
+          Math.floor((Date.now()-new Date(c.last_contact_date).getTime())/86400000) < 7 ? 'lcd-green' :
+          Math.floor((Date.now()-new Date(c.last_contact_date).getTime())/86400000) < 30 ? 'lcd-yellow' : 'lcd-red';
+        return `<tr data-item-id="${c.id}">
           <td>${esc(c.name)}</td>
           <td><span class="badge badge-rel-${c.relationship}">${cap(c.relationship)}</span></td>
           <td>${esc(c.company)}</td>
           <td><span class="${colorCls}">${lcd||'—'}</span></td>
           <td class="td-snippet">${esc((c.notes||'').substring(0,40))}</td>
-          <td><button class="btn btn-sm btn-danger" onclick="deleteContact(${c.id})">×</button></td>
+          <td><button class="btn btn-sm btn-danger" onclick="confirm('Delete this contact?', () => deleteContact(${c.id}))">×</button></td>
         </tr>`;
       }).join('');
     }
-    function openContactModal() { document.getElementById('contact-modal').classList.add('show'); }
+    function openContactModal(editId) {
+      if (editId) {
+        const c = contacts.find(x => x.id === editId);
+        if (c) {
+          document.getElementById('contact-modal-title').textContent = 'Edit Contact';
+          document.getElementById('cm-edit-id').value = editId;
+          document.getElementById('cm-name').value = c.name;
+          document.getElementById('cm-rel').value = c.relationship;
+          document.getElementById('cm-company').value = c.company || '';
+          document.getElementById('cm-lcd').value = c.last_contact_date || '';
+          document.getElementById('cm-notes').value = c.notes || '';
+        }
+      } else {
+        document.getElementById('contact-modal-title').textContent = 'Add Contact';
+        document.getElementById('cm-edit-id').value = '';
+        document.getElementById('cm-name').value = '';
+        document.getElementById('cm-rel').value = 'other';
+        document.getElementById('cm-company').value = '';
+        document.getElementById('cm-lcd').value = '';
+        document.getElementById('cm-notes').value = '';
+      }
+      document.getElementById('contact-modal').classList.add('show');
+    }
     async function submitContact() {
-      await fetch('/api/contacts', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
-        name: document.getElementById('cm-name').value, relationship: document.getElementById('cm-rel').value,
-        company: document.getElementById('cm-company').value, last_contact_date: document.getElementById('cm-lcd').value,
+      const editId = document.getElementById('cm-edit-id').value;
+      const payload = {
+        name: document.getElementById('cm-name').value,
+        relationship: document.getElementById('cm-rel').value,
+        company: document.getElementById('cm-company').value,
+        last_contact_date: document.getElementById('cm-lcd').value,
         notes: document.getElementById('cm-notes').value
-      })});
+      };
+      if (!payload.name) { showToast('Please enter a name', 'error'); return; }
+      if (editId) {
+        await fetch(`/api/contacts/${editId}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+        showToast('Contact updated');
+      } else {
+        await fetch('/api/contacts', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+        showToast('Contact added');
+      }
       closeModal('contact-modal'); loadContacts();
     }
-    async function deleteContact(id) { if (!confirm('Delete?')) return; await fetch(`/api/contacts/${id}`,{method:'DELETE'}); loadContacts(); }
+    async function deleteContact(id) { await fetch(`/api/contacts/${id}`,{method:'DELETE'}); showToast('Contact deleted'); loadContacts(); }
 
     // ============ DASHBOARD ============
     const HEATMAP_COLORS = ['#161b22','#0e4429','#006d32','#26a641','#39d353'];
@@ -479,12 +1023,10 @@
 
     function renderHeatmap(data, year) {
       const container = document.getElementById('heatmap-container');
-      // Build grid: 53 weeks × 7 days
       const startDate = new Date(year, 0, 1);
-      const startDay = startDate.getDay(); // 0=Sun
+      const startDay = startDate.getDay();
       const firstSunday = new Date(year, 0, 1 - startDay);
       let html = '<div class="heatmap-grid">';
-      // Month labels
       html += '<div class="heatmap-months">';
       let lastMonth = -1;
       for (let w = 0; w < 53; w++) {
@@ -495,11 +1037,8 @@
         }
       }
       html += '</div>';
-      // Day labels + cells
       html += '<div class="heatmap-days">';
-      for (let di = 0; di < 7; di++) {
-        html += `<span class="heatmap-day-label">${di%2===1?DAYS[di]:''}</span>`;
-      }
+      for (let di = 0; di < 7; di++) { html += `<span class="heatmap-day-label">${di%2===1?DAYS[di]:''}</span>`; }
       html += '</div>';
       html += '<div class="heatmap-cells">';
       for (let w = 0; w < 53; w++) {
@@ -516,7 +1055,6 @@
       }
       html += '</div></div>';
       container.innerHTML = html;
-      // Tooltip on hover
       container.addEventListener('mouseover', e => {
         const c = e.target.closest('.heatmap-cell');
         if (!c) return;
@@ -586,12 +1124,12 @@
           <table class="rpt-stats"><tbody>${Object.entries(data.stats).map(([k,v]) => `<tr><td>${k.replace(/_/g,' ')}</td><td>${v}</td></tr>`).join('')}</tbody></table>
           <div class="rpt-meta">Generated: ${data.generated_at}</div>
           <button class="btn" onclick="navigator.clipboard.writeText(this.parentElement.innerText)">Copy to clipboard</button>`;
+        showToast('Report generated');
       } finally {
         btn.disabled = false; btn.textContent = 'Generate Report';
       }
     }
 
-    // Init report dates to current month
     (function(){
       const now = new Date();
       const y = now.getFullYear(), m = String(now.getMonth()+1).padStart(2,'0');

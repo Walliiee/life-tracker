@@ -9,6 +9,98 @@ init_db()
 
 MODULES = ["applications", "interviews", "tasks", "projects", "meetings", "contacts"]
 
+@app.route('/api/search')
+def global_search():
+    q = request.args.get('q', '').strip().lower()
+    if not q:
+        return jsonify({"applications": [], "tasks": [], "projects": [], "meetings": [], "contacts": []})
+    db = get_db()
+    results = {}
+    # Applications: company, role, notes
+    rows = db.execute(
+        "SELECT * FROM applications WHERE LOWER(company) LIKE ? OR LOWER(role) LIKE ? OR LOWER(notes) LIKE ? LIMIT 5",
+        (f'%{q}%', f'%{q}%', f'%{q}%')
+    ).fetchall()
+    results['applications'] = [dict(r) for r in rows]
+    # Tasks: title, notes
+    rows = db.execute(
+        "SELECT * FROM tasks WHERE LOWER(title) LIKE ? OR LOWER(notes) LIKE ? LIMIT 5",
+        (f'%{q}%', f'%{q}%')
+    ).fetchall()
+    results['tasks'] = [dict(r) for r in rows]
+    # Projects: name, description
+    rows = db.execute(
+        "SELECT * FROM projects WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? LIMIT 5",
+        (f'%{q}%', f'%{q}%')
+    ).fetchall()
+    results['projects'] = [dict(r) for r in rows]
+    # Meetings: person_name, topics, outcome
+    rows = db.execute(
+        "SELECT * FROM meetings WHERE LOWER(person_name) LIKE ? OR LOWER(topics) LIKE ? OR LOWER(outcome) LIKE ? LIMIT 5",
+        (f'%{q}%', f'%{q}%', f'%{q}%')
+    ).fetchall()
+    results['meetings'] = [dict(r) for r in rows]
+    # Contacts: name, company, notes
+    rows = db.execute(
+        "SELECT * FROM contacts WHERE LOWER(name) LIKE ? OR LOWER(company) LIKE ? OR LOWER(notes) LIKE ? LIMIT 5",
+        (f'%{q}%', f'%{q}%', f'%{q}%')
+    ).fetchall()
+    results['contacts'] = [dict(r) for r in rows]
+    return jsonify(results)
+
+# --- Interviews API ---
+
+@app.route('/api/interviews', methods=['GET'])
+def list_interviews():
+    db = get_db()
+    app_id = request.args.get('application_id')
+    if app_id:
+        rows = db.execute(
+            "SELECT i.*, a.company, a.role FROM interviews i "
+            "JOIN applications a ON i.application_id = a.id "
+            "WHERE i.application_id = ? ORDER BY i.date DESC", (app_id,)
+        ).fetchall()
+    else:
+        rows = db.execute(
+            "SELECT i.*, a.company, a.role FROM interviews i "
+            "JOIN applications a ON i.application_id = a.id ORDER BY i.date DESC"
+        ).fetchall()
+    return jsonify([dict(r) for r in rows])
+
+@app.route('/api/interviews', methods=['POST'])
+def create_interview():
+    data = request.get_json()
+    db = get_db()
+    cursor = db.execute(
+        "INSERT INTO interviews (application_id, date, type, notes, outcome) VALUES (?, ?, ?, ?, ?)",
+        (data['application_id'], data['date'], data['type'], data.get('notes', ''), data.get('outcome', 'pending'))
+    )
+    db.commit()
+    return jsonify({"id": cursor.lastrowid}), 201
+
+@app.route('/api/interviews/<int:interview_id>', methods=['PUT'])
+def update_interview(interview_id):
+    data = request.get_json()
+    db = get_db()
+    sets, vals = [], []
+    for k in ('date', 'type', 'notes', 'outcome'):
+        if k in data:
+            sets.append(f"{k} = ?")
+            vals.append(data[k])
+    if not sets:
+        return jsonify({"error": "No fields to update"}), 400
+    vals.append(interview_id)
+    db.execute(f"UPDATE interviews SET {', '.join(sets)} WHERE id = ?", vals)
+    db.commit()
+    return jsonify({"ok": True})
+
+@app.route('/api/interviews/<int:interview_id>', methods=['DELETE'])
+def delete_interview(interview_id):
+    db = get_db()
+    db.execute("DELETE FROM interviews WHERE id = ?", (interview_id,))
+    db.commit()
+    return jsonify({"ok": True})
+
 @app.route('/')
 def index():
     return render_template('index.html')
