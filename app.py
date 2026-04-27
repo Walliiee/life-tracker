@@ -2,7 +2,7 @@ import os
 import re
 import logging
 from flask import Flask, jsonify, request, render_template
-from db import init_db, get_db
+from db import init_db, get_db, close_db
 import subprocess
 from datetime import datetime
 
@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 init_db()
+app.teardown_appcontext(close_db)
 
 MODULES = ["applications", "interviews", "tasks", "projects", "meetings", "contacts"]
 
@@ -433,9 +434,9 @@ def create_meeting():
             "INSERT INTO meetings (person_name, date, topics, outcome, next_steps) VALUES (?, ?, ?, ?, ?)",
             (data['person_name'], data['date'], data.get('topics', ''), data.get('outcome', ''), data.get('next_steps', ''))
         )
-        db.execute("UPDATE contacts SET last_contact_date = ? WHERE name = ?", (data['date'], data['person_name']))
+        contact = db.execute("UPDATE contacts SET last_contact_date = ? WHERE name = ?", (data['date'], data['person_name']))
         db.commit()
-        return jsonify({"id": cursor.lastrowid}), 201
+        return jsonify({"id": cursor.lastrowid, "contact_updated": contact.rowcount > 0}), 201
     except Exception as e:
         logger.error("create_meeting error: %s", e)
         return jsonify({"error": "Database error"}), 500
@@ -674,6 +675,19 @@ def generate_report():
     except Exception:
         summary = f"Report for {start} to {end}: " + ", ".join(f"{k}: {v}" for k, v in stats.items()) + "."
     return jsonify({"summary": summary, "stats": stats, "generated_at": datetime.now().isoformat()})
+
+# --- Export API ---
+
+@app.route('/api/export', methods=['GET'])
+def export_data():
+    db = get_db()
+    try:
+        tables = ['applications', 'interviews', 'tasks', 'projects', 'meetings', 'contacts', 'daily_log']
+        data = {t: [dict(r) for r in db.execute(f"SELECT * FROM {t}").fetchall()] for t in tables}
+        return jsonify({"exported_at": datetime.now().isoformat(), "data": data})
+    except Exception as e:
+        logger.error("export error: %s", e)
+        return jsonify({"error": "Export failed"}), 500
 
 if __name__ == '__main__':
     app.run(port=PORT, debug=DEBUG)
