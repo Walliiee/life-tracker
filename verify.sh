@@ -1,5 +1,5 @@
 #!/bin/bash
-cd /Users/mmk/.openclaw/workspace/projects/life-tracker
+cd "$(dirname "$0")"
 python3 app.py &
 PID=$!
 sleep 3
